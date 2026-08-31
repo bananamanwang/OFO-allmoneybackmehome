@@ -179,6 +179,18 @@
             background-color: #f0f8ff;
         }
 
+        input[readonly] {
+            color: #344054;
+            background-color: #f2f4f7;
+            cursor: default;
+        }
+
+        .field-help {
+            margin-top: 6px;
+            color: #667085;
+            font-size: 0.82rem;
+        }
+
         .alert-container {
             display: flex;
             flex-direction: column;
@@ -246,6 +258,18 @@
             font-weight: normal;
         }
 
+        .shortage-label {
+            display: none;
+            margin-top: 7px;
+            padding: 4px 10px;
+            color: #b42318;
+            background-color: #fee4e2;
+            border: 1px solid #fda29b;
+            border-radius: 999px;
+            font-size: 0.88rem;
+            font-weight: bold;
+        }
+
         .alert-box {
             margin-top: 15px;
             padding: 15px;
@@ -288,7 +312,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.08.31第二版</span>
+        <span>2026.08.31第三版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -307,8 +331,9 @@
             <select id="calendarMonth" onchange="generateMonthRows()"></select>
         </div>
         <div class="input-group">
-            <label for="requiredHours">本月應上時數 (小時)</label>
-            <input type="number" id="requiredHours" placeholder="例如: 160" min="0" max="744" step="0.1" value="160" oninput="validateNumber(this); calculateHours()">
+            <label for="requiredHours">本月應上時數 (工作天 × 8小時)</label>
+            <input type="number" id="requiredHours" min="0" max="744" step="0.1" value="0" readonly>
+            <span id="workdaySummary" class="field-help"></span>
         </div>
         <div class="input-group">
             <label for="groupSupHours">團督時數 (小時)</label>
@@ -363,7 +388,7 @@
             <div class="result-value-container">
                 <span class="result-value" id="overtimeTotal" style="font-size: 1.5rem; color: #d35400;">0.00 小時</span>
                 <div class="sub-result ot-highlight" style="color:#d35400; font-weight:bold;">
-                    (本月總時數 - 本月應上)
+                    (平日加班，負數不計 + 週六 + 國定假日)
                 </div>
             </div>
         </div>
@@ -372,6 +397,7 @@
             <span class="result-label">平日加班：</span>
             <div class="result-value-container">
                 <span class="result-value" id="weekdayOvertimeDisplay">0.00 小時</span>
+                <div id="weekdayShortageLabel" class="shortage-label">應上不足</div>
                 <div class="sub-result">(本月總時數 - 周六 - 國定 - 颱風 - 應上)</div>
             </div>
         </div>
@@ -506,13 +532,23 @@
         const monthHolidays = (officialHolidays[year] || [])
             .filter(([date]) => date.startsWith(`${year}-${monthText}-`));
         const holidayMap = new Map(monthHolidays);
+        const allHolidayDates = new Set((officialHolidays[year] || []).map(([date]) => date));
         const saturdays = [];
         const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+        let workdayCount = 0;
 
         for (let day = 1; day <= daysInMonth; day++) {
             const date = new Date(Date.UTC(year, month - 1, day));
+            const isoDate = date.toISOString().slice(0, 10);
             if (date.getUTCDay() === 6) saturdays.push(date);
+            if (date.getUTCDay() >= 1 && date.getUTCDay() <= 5 && !allHolidayDates.has(isoDate)) {
+                workdayCount++;
+            }
         }
+
+        const requiredHours = workdayCount * 8;
+        document.getElementById('requiredHours').value = requiredHours;
+        document.getElementById('workdaySummary').innerText = `${workdayCount} 個工作天 × 8 小時＝${requiredHours} 小時`;
 
         document.getElementById('saturdayContainer').innerHTML = saturdays
             .map((date, index) => {
@@ -616,8 +652,8 @@
 
         const baseSystemHours = (weekdayMin + transportMin) / 60 + groupSupHours;
         const grandTotalHours = baseSystemHours + typhoonHoursOnly;
-        const totalOvertime = grandTotalHours - requiredHours;
         const weekdayOvertime = grandTotalHours - saturdayHours - holidayHoursOnly - typhoonHoursOnly - requiredHours;
+        const totalOvertime = Math.max(weekdayOvertime, 0) + saturdayHours + holidayHoursOnly;
         const finalWeekdayTotal = grandTotalHours - saturdayHours - holidayHoursOnly - typhoonHoursOnly;
 
         document.getElementById('grandTotal').innerText = grandTotalHours.toFixed(2) + " 小時";
@@ -627,8 +663,10 @@
         totalOtEl.style.color = totalOvertime > 46 ? 'var(--warning-color)' : '#d35400';
 
         const weekdayOtEl = document.getElementById('weekdayOvertimeDisplay');
+        const weekdayShortageLabel = document.getElementById('weekdayShortageLabel');
         weekdayOtEl.innerText = weekdayOvertime.toFixed(2) + " 小時";
         weekdayOtEl.style.color = weekdayOvertime < 0 ? 'var(--warning-color)' : 'var(--primary-color)';
+        weekdayShortageLabel.style.display = weekdayOvertime < 0 ? 'inline-block' : 'none';
 
         document.getElementById('weekdayTotal').innerText = finalWeekdayTotal.toFixed(2) + " 小時";
         document.getElementById('saturdayTotal').innerText = saturdayHours.toFixed(2) + " 小時";
