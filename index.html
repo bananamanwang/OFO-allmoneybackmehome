@@ -167,6 +167,11 @@
             font-weight: 600;
         }
 
+        .unit-warning {
+            color: #d92d20;
+            font-weight: 700;
+        }
+
         input {
             padding: 10px 12px;
             border: 1px solid #ccc;
@@ -400,7 +405,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.08.31第八版</span>
+        <span>2026.08.31第九版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -450,12 +455,16 @@
             <label for="transportMin">總交通 (分鐘)</label>
             <input type="number" id="transportMin" placeholder="0" min="0" max="44640" step="1" oninput="validateNumber(this); calculateHours()">
         </div>
+        <div class="input-group">
+            <label for="daycareHours">日照時數 <span class="unit-warning">（小時）</span></label>
+            <input type="number" id="daycareHours" placeholder="0" min="0" max="744" step="0.1" oninput="validateNumber(this); calculateHours()">
+        </div>
     </div>
 
     <div id="periodError" class="period-error" role="alert"></div>
 
     <div class="input-notice">
-        <strong>填寫提醒：</strong>「全家寶總時數」與「總交通」請填入所選期間的總量，內容已包含週六及國定假日；下方日期欄位只用來分類計算，不會再次加入總時數。
+        <strong>填寫提醒：</strong>「全家寶總時數」、「總交通」與「日照時數」請填入所選期間的總量；日照時數會直接加入總工時。下方日期欄位只用來分類計算，不會再次加入總時數。
     </div>
 
     <div class="section-title">2. 週六時間 (單位：分鐘)</div>
@@ -483,7 +492,7 @@
             <div class="summary-card total">
                 <span class="summary-label">期間總工時（不含交通）</span>
                 <span class="summary-value" id="grandTotal">0.00 小時</span>
-                <span class="summary-help">全家寶＋團督＋颱風</span>
+                <span class="summary-help">全家寶＋日照＋團督＋颱風</span>
             </div>
             <div class="summary-card transport">
                 <span class="summary-label">總交通時間</span>
@@ -541,7 +550,7 @@
         </div>
 
         <div class="calculation-note">
-            <strong>計算說明：</strong>期間總工時不含交通＝全家寶＋團督＋颱風；總加班仍會計入交通時間，計算方式為平日加班正數＋週六加班＋國定假日加班。平日加班為負數時不列入總加班。
+            <strong>計算說明：</strong>期間總工時不含交通＝全家寶＋日照＋團督＋颱風；總加班仍會計入交通時間，計算方式為平日加班正數＋週六加班＋國定假日加班。平日加班為負數時不列入總加班。
         </div>
 
         <div id="alertBox" class="alert-box"></div>
@@ -886,6 +895,7 @@
         const groupSupHours = getVal('groupSupHours');
         const weekdayMin = getVal('weekdayMin');
         const transportMin = getVal('transportMin');
+        const daycareHours = getVal('daycareHours');
         const hasData = hasEnteredData();
         
         let saturdayHours = 0;   
@@ -927,7 +937,7 @@
             typhoonHoursOnly += getVal('typ' + i) / 60;
         }
 
-        const baseSystemHours = (weekdayMin + transportMin) / 60 + groupSupHours;
+        const baseSystemHours = (weekdayMin + transportMin) / 60 + daycareHours + groupSupHours;
         const grandTotalHours = baseSystemHours + typhoonHoursOnly;
         const transportHours = transportMin / 60;
         const periodWorkHours = grandTotalHours - transportHours;
