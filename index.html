@@ -224,48 +224,126 @@
         }
 
         .results-card {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 22px;
             margin-top: 30px;
-            border: 1px solid #e9ecef;
+            border: 1px solid #dfe5eb;
         }
 
-        .result-row {
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .summary-card {
+            min-height: 118px;
+            padding: 18px;
+            border: 1px solid;
+            border-radius: 10px;
             display: flex;
+            flex-direction: column;
             justify-content: space-between;
-            align-items: flex-start;
-            padding: 14px 0;
-            border-bottom: 1px dashed #ddd;
         }
 
-        .result-row:last-child {
-            border-bottom: none;
+        .summary-card.total {
+            color: #175cd3;
+            background-color: #eff8ff;
+            border-color: #b2ddff;
         }
 
-        .result-label {
-            font-weight: 600;
-            color: #444;
-            margin-top: 4px;
+        .summary-card.required {
+            color: #344054;
+            background-color: #f2f4f7;
+            border-color: #d0d5dd;
+        }
+
+        .summary-card.overtime {
+            color: #b54708;
+            background-color: #fffaeb;
+            border-color: #fedf89;
+        }
+
+        .summary-label {
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        .summary-value {
+            margin-top: 12px;
+            font-size: 1.75rem;
+            font-weight: bold;
+            line-height: 1.15;
+            transition: color 0.3s;
+        }
+
+        .summary-help {
+            margin-top: 8px;
+            font-size: 0.78rem;
+            color: currentColor;
+            opacity: 0.8;
+        }
+
+        .detail-section {
+            margin-top: 22px;
+        }
+
+        .detail-heading {
+            margin: 0 0 12px;
+            color: var(--primary-color);
             font-size: 1.05rem;
         }
 
-        .result-value-container {
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            min-height: 48px;
+            padding: 14px 16px;
+            background-color: #f8fafc;
+            border: 1px solid #e4e7ec;
+            border-radius: 8px;
+        }
+
+        .detail-item.transport-detail {
+            color: #475467;
+            background-color: #f2f4f7;
+        }
+
+        .detail-label {
+            color: #475467;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .detail-value-wrap {
             text-align: right;
         }
 
-        .result-value {
-            font-size: 1.25rem;
-            font-weight: bold;
+        .detail-value {
             color: var(--primary-color);
-            transition: color 0.3s;
+            font-size: 1.1rem;
+            font-weight: 700;
+            white-space: nowrap;
         }
-        
-        .sub-result {
-            font-size: 0.9rem;
-            color: #666;
-            margin-top: 6px;
-            font-weight: normal;
+
+        .calculation-note {
+            margin-top: 16px;
+            padding: 12px 14px;
+            color: #667085;
+            background-color: #f9fafb;
+            border: 1px dashed #d0d5dd;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            line-height: 1.65;
         }
 
         .shortage-label {
@@ -322,7 +400,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.08.31第六版</span>
+        <span>2026.08.31第七版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -401,69 +479,69 @@
 
     <!-- 計算結果面板 -->
     <div class="results-card">
-        
-        <div class="result-row" style="background-color: #eef6fb; padding: 18px 15px; border-radius: 6px; align-items: center; border: 1px solid #d4e6f1;">
-            <span class="result-label" style="font-size: 1.2rem; color: #1a5276; margin-top:0;">期間總時數 (大盤總時數)：</span>
-            <div class="result-value-container">
-                <span class="result-value" id="grandTotal" style="font-size: 1.5rem; color: #1a5276;">0.00 小時</span>
-                <div class="sub-result" style="color:#1a5276;">(全家寶 + 總交通 + 團督 + 颱風)</div>
+        <div class="summary-grid">
+            <div class="summary-card total">
+                <span class="summary-label">期間總工時</span>
+                <span class="summary-value" id="grandTotal">0.00 小時</span>
+                <span class="summary-help">全部實際工時合計</span>
+            </div>
+            <div class="summary-card required">
+                <span class="summary-label">應上工時</span>
+                <span class="summary-value" id="requiredHoursDisplay">0.00 小時</span>
+                <span class="summary-help">依工作日自動計算，可手動調整</span>
+            </div>
+            <div class="summary-card overtime">
+                <span class="summary-label">總加班時數</span>
+                <span class="summary-value" id="overtimeTotal">0.00 小時</span>
+                <span class="summary-help">平日正數＋週六＋國定假日</span>
             </div>
         </div>
 
-        <div class="result-row" style="background-color: #fdf2e9; padding: 18px 15px; border-radius: 6px; border: 1px solid #fae5d3; margin-top: 10px;">
-            <span class="result-label" style="font-size: 1.2rem; color: #ba4a00; margin-top:0;">總加班時數：</span>
-            <div class="result-value-container">
-                <span class="result-value" id="overtimeTotal" style="font-size: 1.5rem; color: #d35400;">0.00 小時</span>
-                <div class="sub-result ot-highlight" style="color:#d35400; font-weight:bold;">
-                    (平日加班，負數不計 + 週六 + 國定假日)
+        <div class="detail-section">
+            <h3 class="detail-heading">工時明細</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">期間平日實際工時</span>
+                    <div class="detail-value-wrap">
+                        <span class="detail-value" id="weekdayTotal">0.00 小時</span>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">平日加班</span>
+                    <div class="detail-value-wrap">
+                        <span class="detail-value" id="weekdayOvertimeDisplay">0.00 小時</span>
+                        <div id="weekdayShortageLabel" class="shortage-label">應上不足</div>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">週六加班</span>
+                    <div class="detail-value-wrap">
+                        <span class="detail-value" id="saturdayTotal">0.00 小時</span>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">國定假日加班</span>
+                    <div class="detail-value-wrap">
+                        <span class="detail-value" id="holidayTotal">0.00 小時</span>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">颱風假時數</span>
+                    <div class="detail-value-wrap">
+                        <span class="detail-value" id="typhoonTotal">0.00 小時</span>
+                    </div>
+                </div>
+                <div class="detail-item transport-detail">
+                    <span class="detail-label">總交通時間</span>
+                    <div class="detail-value-wrap">
+                        <span class="detail-value" id="transportTotal">0.00 小時</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="result-row">
-            <span class="result-label">平日加班：</span>
-            <div class="result-value-container">
-                <span class="result-value" id="weekdayOvertimeDisplay">0.00 小時</span>
-                <div id="weekdayShortageLabel" class="shortage-label">應上不足</div>
-                <div class="sub-result">(期間總時數 - 週六 - 國定 - 颱風 - 應上)</div>
-            </div>
-        </div>
-
-        <div class="result-row">
-            <span class="result-label">期間平日實際工時：</span>
-            <div class="result-value-container">
-                <span class="result-value" id="weekdayTotal">0.00 小時</span>
-                <div class="sub-result">(期間總時數 - 週六 - 國定 - 颱風)</div>
-            </div>
-        </div>
-
-        <div class="result-row">
-            <span class="result-label">總交通時間：</span>
-            <div class="result-value-container">
-                <span class="result-value" id="transportTotal">0.00 小時</span>
-                <div class="sub-result">(上方總交通分鐘 ÷ 60)</div>
-            </div>
-        </div>
-
-        <div class="result-row">
-            <span class="result-label">週六總時數：</span>
-            <div class="result-value-container">
-                <span class="result-value" id="saturdayTotal">0.00 小時</span>
-            </div>
-        </div>
-
-        <div class="result-row">
-            <span class="result-label">國定假日時數：</span>
-            <div class="result-value-container">
-                <span class="result-value" id="holidayTotal">0.00 小時</span>
-            </div>
-        </div>
-
-        <div class="result-row">
-            <span class="result-label">颱風假時數：</span>
-            <div class="result-value-container">
-                <span class="result-value" id="typhoonTotal">0.00 小時</span>
-            </div>
+        <div class="calculation-note">
+            <strong>計算說明：</strong>期間總工時＝全家寶＋總交通＋團督＋颱風；總加班＝平日加班正數＋週六加班＋國定假日加班。平日加班為負數時不列入總加班。
         </div>
 
         <div id="alertBox" class="alert-box"></div>
@@ -856,7 +934,8 @@
         const finalWeekdayTotal = grandTotalHours - saturdayHours - holidayHoursOnly - typhoonHoursOnly;
 
         document.getElementById('grandTotal').innerText = grandTotalHours.toFixed(2) + " 小時";
-        
+        document.getElementById('requiredHoursDisplay').innerText = requiredHours.toFixed(2) + " 小時";
+
         const totalOtEl = document.getElementById('overtimeTotal');
         totalOtEl.innerText = totalOvertime.toFixed(2) + " 小時";
         totalOtEl.style.color = totalOvertime > 46 ? 'var(--warning-color)' : '#d35400';
