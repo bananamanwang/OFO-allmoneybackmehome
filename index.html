@@ -139,7 +139,7 @@
 
         .time-entry-row {
             display: grid;
-            grid-template-columns: 80px 1fr 1fr;
+            grid-template-columns: minmax(220px, 1.25fr) repeat(2, minmax(0, 1fr));
             gap: 15px;
             align-items: center;
             margin-bottom: 12px;
@@ -312,7 +312,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.08.31第三版</span>
+        <span>2026.08.31第四版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -324,11 +324,11 @@
     <div class="input-grid">
         <div class="input-group">
             <label for="calendarYear">計算年份</label>
-            <select id="calendarYear" onchange="generateMonthRows()"></select>
+            <select id="calendarYear" onchange="handlePeriodChange()"></select>
         </div>
         <div class="input-group">
             <label for="calendarMonth">計算月份</label>
-            <select id="calendarMonth" onchange="generateMonthRows()"></select>
+            <select id="calendarMonth" onchange="handlePeriodChange()"></select>
         </div>
         <div class="input-group">
             <label for="requiredHours">本月應上時數 (工作天 × 8小時)</label>
@@ -398,7 +398,7 @@
             <div class="result-value-container">
                 <span class="result-value" id="weekdayOvertimeDisplay">0.00 小時</span>
                 <div id="weekdayShortageLabel" class="shortage-label">應上不足</div>
-                <div class="sub-result">(本月總時數 - 周六 - 國定 - 颱風 - 應上)</div>
+                <div class="sub-result">(本月總時數 - 週六 - 國定 - 颱風 - 應上)</div>
             </div>
         </div>
 
@@ -406,7 +406,7 @@
             <span class="result-label">本月平日實際工時：</span>
             <div class="result-value-container">
                 <span class="result-value" id="weekdayTotal">0.00 小時</span>
-                <div class="sub-result">(本月總時數 - 周六 - 國定 - 颱風)</div>
+                <div class="sub-result">(本月總時數 - 週六 - 國定 - 颱風)</div>
             </div>
         </div>
 
@@ -491,6 +491,9 @@
         ]
     };
 
+    let activeYear = null;
+    let activeMonth = null;
+
     function initializeCalendarSelectors() {
         const yearSelect = document.getElementById('calendarYear');
         const monthSelect = document.getElementById('calendarMonth');
@@ -520,9 +523,38 @@
         return `
             <div class="time-entry-row">
                 <label for="${prefix}W${index}">${label}</label>
-                <input type="number" id="${prefix}W${index}" data-category="${category}" data-entry="work" data-label="${label}" placeholder="填工時(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()">
-                <input type="number" id="${prefix}T${index}" data-category="${category}" data-entry="transport" data-label="${label}" placeholder="填交通(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()">
+                <input type="number" id="${prefix}W${index}" data-category="${category}" data-entry="work" data-label="${label}" aria-label="${label} 工時（分鐘）" placeholder="填工時(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()">
+                <input type="number" id="${prefix}T${index}" data-category="${category}" data-entry="transport" data-label="${label}" aria-label="${label} 交通（分鐘）" placeholder="填交通(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()">
             </div>`;
+    }
+
+    function getEditableInputs() {
+        return [...document.querySelectorAll('input[type="number"]:not(#requiredHours)')];
+    }
+
+    function hasEnteredData() {
+        return getEditableInputs().some(input => input.value !== '');
+    }
+
+    function clearCalculationInputs() {
+        getEditableInputs().forEach(input => input.value = '');
+    }
+
+    function handlePeriodChange() {
+        const yearSelect = document.getElementById('calendarYear');
+        const monthSelect = document.getElementById('calendarMonth');
+
+        if (activeYear !== null && hasEnteredData()) {
+            const confirmed = confirm('切換年月會清除目前已填寫的工時資料，確定要切換嗎？');
+            if (!confirmed) {
+                yearSelect.value = activeYear;
+                monthSelect.value = activeMonth;
+                return;
+            }
+        }
+
+        clearCalculationInputs();
+        generateMonthRows();
     }
 
     function generateMonthRows() {
@@ -569,6 +601,8 @@
             }).join('')
             : '<div class="empty-state">本月沒有需要另外填寫的國定假日</div>';
 
+        activeYear = String(year);
+        activeMonth = String(month);
         calculateHours();
     }
 
@@ -610,6 +644,7 @@
         const groupSupHours = getVal('groupSupHours');
         const weekdayMin = getVal('weekdayMin');
         const transportMin = getVal('transportMin');
+        const hasData = hasEnteredData();
         
         let saturdayHours = 0;   
         let satAlertsHTML = '';
@@ -664,9 +699,9 @@
 
         const weekdayOtEl = document.getElementById('weekdayOvertimeDisplay');
         const weekdayShortageLabel = document.getElementById('weekdayShortageLabel');
-        weekdayOtEl.innerText = weekdayOvertime.toFixed(2) + " 小時";
-        weekdayOtEl.style.color = weekdayOvertime < 0 ? 'var(--warning-color)' : 'var(--primary-color)';
-        weekdayShortageLabel.style.display = weekdayOvertime < 0 ? 'inline-block' : 'none';
+        weekdayOtEl.innerText = hasData ? weekdayOvertime.toFixed(2) + " 小時" : "尚未填寫";
+        weekdayOtEl.style.color = hasData && weekdayOvertime < 0 ? 'var(--warning-color)' : 'var(--primary-color)';
+        weekdayShortageLabel.style.display = hasData && weekdayOvertime < 0 ? 'inline-block' : 'none';
 
         document.getElementById('weekdayTotal').innerText = finalWeekdayTotal.toFixed(2) + " 小時";
         document.getElementById('saturdayTotal').innerText = saturdayHours.toFixed(2) + " 小時";
@@ -677,18 +712,17 @@
         if (totalOvertime > 46) {
             alertBox.className = "alert-box danger";
             alertBox.innerHTML = `🚨 警告：總加班時數已超過 46 小時上限，請盡速調整！`;
+            alertBox.style.display = "block";
         } else {
+            alertBox.className = "alert-box";
+            alertBox.innerHTML = "";
             alertBox.style.display = "none";
         }
     }
 
     function clearFields() {
         if(confirm('確定要清除所有填寫的資料嗎？(本月應上時數將會保留)')) {
-            document.getElementById('groupSupHours').value = '';
-            document.getElementById('weekdayMin').value = '';
-            document.getElementById('transportMin').value = '';
-            
-            document.querySelectorAll('input[type="number"]:not(#requiredHours)').forEach(input => input.value = '');
+            clearCalculationInputs();
             calculateHours();
         }
     }
