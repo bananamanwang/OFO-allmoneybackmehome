@@ -95,6 +95,48 @@
             flex-direction: column;
         }
 
+        select {
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+            background-color: #fff;
+            color: #333;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background-color: #f0f8ff;
+        }
+
+        .input-notice {
+            margin-top: 15px;
+            padding: 12px 15px;
+            color: #7d5700;
+            background-color: #fff8df;
+            border: 1px solid #f0d98a;
+            border-left: 4px solid #e0a800;
+            border-radius: 6px;
+            line-height: 1.55;
+        }
+
+        .calendar-note {
+            margin: -5px 0 15px;
+            color: #66727d;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        .empty-state {
+            padding: 14px;
+            color: #6c757d;
+            background-color: #fafafa;
+            border: 1px dashed #ccd2d7;
+            border-radius: 6px;
+            text-align: center;
+        }
+
         .time-entry-row {
             display: grid;
             grid-template-columns: 80px 1fr 1fr;
@@ -246,7 +288,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.08.28第一版</span>
+        <span>2026.08.31第二版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -257,38 +299,52 @@
     <div class="section-title">1. 基準與平日資料</div>
     <div class="input-grid">
         <div class="input-group">
-            <label>本月應上時數 (小時)</label>
-            <input type="number" id="requiredHours" placeholder="例如: 160" step="0.1" value="160" oninput="calculateHours()">
+            <label for="calendarYear">計算年份</label>
+            <select id="calendarYear" onchange="generateMonthRows()"></select>
         </div>
         <div class="input-group">
-            <label>團督時數 (小時)</label>
-            <input type="number" id="groupSupHours" placeholder="0" step="0.1" oninput="calculateHours()">
+            <label for="calendarMonth">計算月份</label>
+            <select id="calendarMonth" onchange="generateMonthRows()"></select>
         </div>
         <div class="input-group">
-            <label>全家寶總時數 (分鐘)</label>
-            <input type="number" id="weekdayMin" placeholder="0" oninput="calculateHours()">
+            <label for="requiredHours">本月應上時數 (小時)</label>
+            <input type="number" id="requiredHours" placeholder="例如: 160" min="0" max="744" step="0.1" value="160" oninput="validateNumber(this); calculateHours()">
         </div>
         <div class="input-group">
-            <label>總交通 (分鐘)</label>
-            <input type="number" id="transportMin" placeholder="0" oninput="calculateHours()">
+            <label for="groupSupHours">團督時數 (小時)</label>
+            <input type="number" id="groupSupHours" placeholder="0" min="0" max="744" step="0.1" oninput="validateNumber(this); calculateHours()">
+        </div>
+        <div class="input-group">
+            <label for="weekdayMin">全家寶總時數 (分鐘)</label>
+            <input type="number" id="weekdayMin" placeholder="0" min="0" max="44640" step="1" oninput="validateNumber(this); calculateHours()">
+        </div>
+        <div class="input-group">
+            <label for="transportMin">總交通 (分鐘)</label>
+            <input type="number" id="transportMin" placeholder="0" min="0" max="44640" step="1" oninput="validateNumber(this); calculateHours()">
         </div>
     </div>
 
+    <div class="input-notice">
+        <strong>填寫提醒：</strong>「全家寶總時數」與「總交通」請填入整個月的總量，內容已包含週六及國定假日；下方日期欄位只用來分類計算，不會再次加入本月總時數。
+    </div>
+
     <div class="section-title">2. 週六時間 (單位：分鐘)</div>
+    <div class="calendar-note">依所選月份自動顯示全部週六；若週六同時為國定假日，會在日期旁標註並只在本區填寫。</div>
     <div id="saturdayContainer"></div>
     <!-- 週六超時警告專區 -->
     <div id="saturdayAlerts" class="alert-container"></div>
 
     <div class="section-title">3. 國定假日 (單位：分鐘)</div>
+    <div class="calendar-note">依行政院人事行政總處辦公日曆資料顯示放假日與補假日；已列入週六區的日期不重複顯示。</div>
     <div id="holidayContainer"></div>
     <!-- 國定假日超時警告專區 -->
     <div id="holidayAlerts" class="alert-container"></div>
 
     <div class="section-title">4. 颱風假補貼 (單位：分鐘)</div>
     <div class="input-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
-        <div class="input-group"><label>颱風假 1</label><input type="number" id="typ1" placeholder="工時(分)" oninput="calculateHours()"></div>
-        <div class="input-group"><label>颱風假 2</label><input type="number" id="typ2" placeholder="工時(分)" oninput="calculateHours()"></div>
-        <div class="input-group"><label>颱風假 3</label><input type="number" id="typ3" placeholder="工時(分)" oninput="calculateHours()"></div>
+        <div class="input-group"><label for="typ1">颱風假 1</label><input type="number" id="typ1" placeholder="工時(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()"></div>
+        <div class="input-group"><label for="typ2">颱風假 2</label><input type="number" id="typ2" placeholder="工時(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()"></div>
+        <div class="input-group"><label for="typ3">颱風假 3</label><input type="number" id="typ3" placeholder="工時(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()"></div>
     </div>
 
     <!-- 計算結果面板 -->
@@ -354,23 +410,163 @@
 </div>
 
 <script>
-    function generateGrid(containerId, prefix, labelText, count) {
-        let html = '';
-        for(let i=1; i<=count; i++) {
-            html += `
-            <div class="time-entry-row">
-                <label>${labelText} ${i}</label>
-                <input type="number" id="${prefix}W${i}" placeholder="填工時(分)" oninput="calculateHours()">
-                <input type="number" id="${prefix}T${i}" placeholder="填交通(分)" oninput="calculateHours()">
-            </div>`;
-        }
-        document.getElementById(containerId).innerHTML = html;
+    // 資料來源：行政院人事行政總處「政府行政機關辦公日曆表」115、116年資料。
+    // 官方逐年公告，新增年度時需一併更新此清單，避免以公式猜測農曆節日與補假日。
+    const officialHolidays = {
+        2026: [
+            ['2026-01-01', '開國紀念日'],
+            ['2026-02-15', '小年夜'],
+            ['2026-02-16', '農曆除夕'],
+            ['2026-02-17', '春節'],
+            ['2026-02-18', '春節'],
+            ['2026-02-19', '春節'],
+            ['2026-02-20', '補假'],
+            ['2026-02-27', '補假'],
+            ['2026-02-28', '和平紀念日'],
+            ['2026-04-03', '補假'],
+            ['2026-04-04', '兒童節'],
+            ['2026-04-05', '清明節'],
+            ['2026-04-06', '補假'],
+            ['2026-05-01', '勞動節'],
+            ['2026-06-19', '端午節'],
+            ['2026-09-25', '中秋節'],
+            ['2026-09-28', '孔子誕辰紀念日／教師節'],
+            ['2026-10-09', '補假'],
+            ['2026-10-10', '國慶日'],
+            ['2026-10-25', '臺灣光復暨金門古寧頭大捷紀念日'],
+            ['2026-10-26', '補假'],
+            ['2026-12-25', '行憲紀念日']
+        ],
+        2027: [
+            ['2027-01-01', '開國紀念日'],
+            ['2027-02-04', '小年夜'],
+            ['2027-02-05', '農曆除夕'],
+            ['2027-02-06', '春節'],
+            ['2027-02-07', '春節'],
+            ['2027-02-08', '春節'],
+            ['2027-02-09', '補假'],
+            ['2027-02-10', '補假'],
+            ['2027-02-28', '和平紀念日'],
+            ['2027-03-01', '補假'],
+            ['2027-04-04', '兒童節'],
+            ['2027-04-05', '清明節'],
+            ['2027-04-06', '補假'],
+            ['2027-04-30', '補假'],
+            ['2027-05-01', '勞動節'],
+            ['2027-06-09', '端午節'],
+            ['2027-09-15', '中秋節'],
+            ['2027-09-28', '孔子誕辰紀念日／教師節'],
+            ['2027-10-10', '國慶日'],
+            ['2027-10-11', '補假'],
+            ['2027-10-25', '臺灣光復暨金門古寧頭大捷紀念日'],
+            ['2027-12-24', '補假'],
+            ['2027-12-25', '行憲紀念日'],
+            ['2027-12-31', '補假']
+        ]
+    };
+
+    function initializeCalendarSelectors() {
+        const yearSelect = document.getElementById('calendarYear');
+        const monthSelect = document.getElementById('calendarMonth');
+        const today = new Date();
+        const supportedYears = Object.keys(officialHolidays).map(Number);
+        const defaultYear = supportedYears.includes(today.getFullYear())
+            ? today.getFullYear()
+            : supportedYears[supportedYears.length - 1];
+
+        yearSelect.innerHTML = supportedYears
+            .map(year => `<option value="${year}"${year === defaultYear ? ' selected' : ''}>${year} 年</option>`)
+            .join('');
+        monthSelect.innerHTML = Array.from({ length: 12 }, (_, index) => {
+            const month = index + 1;
+            const selected = month === today.getMonth() + 1 ? ' selected' : '';
+            return `<option value="${month}"${selected}>${month} 月</option>`;
+        }).join('');
     }
-    generateGrid('saturdayContainer', 'sat', '第', 5);
-    generateGrid('holidayContainer', 'hol', '假日', 5);
+
+    function formatDateLabel(date, holidayName = '') {
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        return `${month}/${day}（六${holidayName ? `・${holidayName}` : ''}）`;
+    }
+
+    function createTimeRow(prefix, index, label, category) {
+        return `
+            <div class="time-entry-row">
+                <label for="${prefix}W${index}">${label}</label>
+                <input type="number" id="${prefix}W${index}" data-category="${category}" data-entry="work" data-label="${label}" placeholder="填工時(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()">
+                <input type="number" id="${prefix}T${index}" data-category="${category}" data-entry="transport" data-label="${label}" placeholder="填交通(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()">
+            </div>`;
+    }
+
+    function generateMonthRows() {
+        const year = Number(document.getElementById('calendarYear').value);
+        const month = Number(document.getElementById('calendarMonth').value);
+        const monthText = String(month).padStart(2, '0');
+        const monthHolidays = (officialHolidays[year] || [])
+            .filter(([date]) => date.startsWith(`${year}-${monthText}-`));
+        const holidayMap = new Map(monthHolidays);
+        const saturdays = [];
+        const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(Date.UTC(year, month - 1, day));
+            if (date.getUTCDay() === 6) saturdays.push(date);
+        }
+
+        document.getElementById('saturdayContainer').innerHTML = saturdays
+            .map((date, index) => {
+                const isoDate = date.toISOString().slice(0, 10);
+                return createTimeRow('sat', index + 1, formatDateLabel(date, holidayMap.get(isoDate)), 'sat');
+            })
+            .join('');
+
+        const nonSaturdayHolidays = monthHolidays.filter(([date]) => {
+            return new Date(`${date}T00:00:00Z`).getUTCDay() !== 6;
+        });
+        document.getElementById('holidayContainer').innerHTML = nonSaturdayHolidays.length
+            ? nonSaturdayHolidays.map(([date, name], index) => {
+                const dateObject = new Date(`${date}T00:00:00Z`);
+                const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                const label = `${date.slice(5).replace('-', '/')}（${weekdays[dateObject.getUTCDay()]}・${name}）`;
+                return createTimeRow('hol', index + 1, label, 'hol');
+            }).join('')
+            : '<div class="empty-state">本月沒有需要另外填寫的國定假日</div>';
+
+        calculateHours();
+    }
+
+    function validateNumber(input) {
+        if (input.value === '') return;
+        let value = Number(input.value);
+        const min = input.min === '' ? null : Number(input.min);
+        const max = input.max === '' ? null : Number(input.max);
+
+        if (!Number.isFinite(value)) {
+            input.value = '';
+            return;
+        }
+        if (min !== null && value < min) value = min;
+        if (max !== null && value > max) value = max;
+        input.value = value;
+    }
 
     function getVal(id) {
-        return parseFloat(document.getElementById(id).value) || 0;
+        const element = document.getElementById(id);
+        const value = element ? parseFloat(element.value) : 0;
+        return Number.isFinite(value) ? Math.max(0, value) : 0;
+    }
+
+    function getCategoryDailyTotals(category) {
+        const workInputs = [...document.querySelectorAll(`input[data-category="${category}"][data-entry="work"]`)];
+        return workInputs.map(workInput => {
+            const index = workInput.id.replace(/\D/g, '');
+            const prefix = category === 'sat' ? 'sat' : 'hol';
+            return {
+                label: workInput.dataset.label,
+                minutes: getVal(workInput.id) + getVal(`${prefix}T${index}`)
+            };
+        });
     }
 
     function calculateHours() {
@@ -382,37 +578,35 @@
         let saturdayHours = 0;   
         let satAlertsHTML = '';
         
-        for (let i = 1; i <= 5; i++) {
-            let satDailyMin = getVal('satW' + i) + getVal('satT' + i);
+        getCategoryDailyTotals('sat').forEach(({ label, minutes: satDailyMin }) => {
             saturdayHours += satDailyMin / 60;
-            
+
             if (satDailyMin > 480) {
                 let excessMin = satDailyMin - 480;
                 let excessHrs = (excessMin / 60).toFixed(2);
                 satAlertsHTML += `
                     <div class="inline-alert">
-                        ⚠️ <strong>第 ${i} 週六</strong> 合計達 ${satDailyMin} 分鐘，已超過 480 分鐘！<br>
+                        ⚠️ <strong>${label}</strong> 合計達 ${satDailyMin} 分鐘，已超過 480 分鐘！<br>
                         👉 額外超出：<strong>${excessMin} 分鐘</strong> (折合 <strong>${excessHrs} 小時</strong>)
                     </div>`;
             }
-        }
+        });
         document.getElementById('saturdayAlerts').innerHTML = satAlertsHTML;
 
         let holidayHoursOnly = 0;
         let holAlertsHTML = '';
         
-        for (let i = 1; i <= 5; i++) {
-            let holDailyMin = getVal('holW' + i) + getVal('holT' + i);
+        getCategoryDailyTotals('hol').forEach(({ label, minutes: holDailyMin }) => {
             holidayHoursOnly += holDailyMin / 60;
-            
+
             if (holDailyMin > 480) {
                 holAlertsHTML += `
                     <div class="inline-alert">
-                        🛑 <strong>假日 ${i}</strong> 合計達 ${holDailyMin} 分鐘！<br>
+                        🛑 <strong>${label}</strong> 合計達 ${holDailyMin} 分鐘！<br>
                         👉 <strong>[警告不得超過8小時]</strong> 請確認您填寫的時數是否正確。
                     </div>`;
             }
-        }
+        });
         document.getElementById('holidayAlerts').innerHTML = holAlertsHTML;
         
         let typhoonHoursOnly = 0;
@@ -456,18 +650,13 @@
             document.getElementById('weekdayMin').value = '';
             document.getElementById('transportMin').value = '';
             
-            for(let i=1; i<=3; i++) document.getElementById('typ'+i).value = '';
-            for(let i=1; i<=5; i++) {
-                document.getElementById('satW'+i).value = '';
-                document.getElementById('satT'+i).value = '';
-                document.getElementById('holW'+i).value = '';
-                document.getElementById('holT'+i).value = '';
-            }
+            document.querySelectorAll('input[type="number"]:not(#requiredHours)').forEach(input => input.value = '');
             calculateHours();
         }
     }
 
-    calculateHours();
+    initializeCalendarSelectors();
+    generateMonthRows();
 </script>
 
 </body>
