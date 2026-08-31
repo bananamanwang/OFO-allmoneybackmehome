@@ -95,6 +95,10 @@
             flex-direction: column;
         }
 
+        .is-hidden {
+            display: none !important;
+        }
+
         select {
             padding: 10px 12px;
             border: 1px solid #ccc;
@@ -179,16 +183,22 @@
             background-color: #f0f8ff;
         }
 
-        input[readonly] {
-            color: #344054;
-            background-color: #f2f4f7;
-            cursor: default;
-        }
-
         .field-help {
             margin-top: 6px;
             color: #667085;
             font-size: 0.82rem;
+            line-height: 1.45;
+        }
+
+        .period-error {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 12px;
+            color: #b42318;
+            background-color: #fee4e2;
+            border: 1px solid #fda29b;
+            border-radius: 6px;
+            font-size: 0.9rem;
         }
 
         .alert-container {
@@ -312,7 +322,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.08.31第四版</span>
+        <span>2026.08.31第五版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -323,16 +333,31 @@
     <div class="section-title">1. 基準與平日資料</div>
     <div class="input-grid">
         <div class="input-group">
+            <label for="periodMode">選取方式</label>
+            <select id="periodMode" onchange="handleModeChange()">
+                <option value="month" selected>整月份</option>
+                <option value="range">日期區間（四週彈性工時）</option>
+            </select>
+        </div>
+        <div class="input-group month-period-field">
             <label for="calendarYear">計算年份</label>
             <select id="calendarYear" onchange="handlePeriodChange()"></select>
         </div>
-        <div class="input-group">
+        <div class="input-group month-period-field">
             <label for="calendarMonth">計算月份</label>
             <select id="calendarMonth" onchange="handlePeriodChange()"></select>
         </div>
+        <div class="input-group range-period-field is-hidden">
+            <label for="rangeStart">開始日期</label>
+            <input type="date" id="rangeStart" onchange="handlePeriodChange()">
+        </div>
+        <div class="input-group range-period-field is-hidden">
+            <label for="rangeEnd">結束日期</label>
+            <input type="date" id="rangeEnd" onchange="handlePeriodChange()">
+        </div>
         <div class="input-group">
-            <label for="requiredHours">本月應上時數 (工作天 × 8小時)</label>
-            <input type="number" id="requiredHours" min="0" max="744" step="0.1" value="0" readonly>
+            <label for="requiredHours">應上工時（工作日 × 8小時）</label>
+            <input type="number" id="requiredHours" min="0" max="20000" step="0.1" value="0" oninput="handleRequiredHoursInput()">
             <span id="workdaySummary" class="field-help"></span>
         </div>
         <div class="input-group">
@@ -349,12 +374,14 @@
         </div>
     </div>
 
+    <div id="periodError" class="period-error" role="alert"></div>
+
     <div class="input-notice">
-        <strong>填寫提醒：</strong>「全家寶總時數」與「總交通」請填入整個月的總量，內容已包含週六及國定假日；下方日期欄位只用來分類計算，不會再次加入本月總時數。
+        <strong>填寫提醒：</strong>「全家寶總時數」與「總交通」請填入所選期間的總量，內容已包含週六及國定假日；下方日期欄位只用來分類計算，不會再次加入總時數。
     </div>
 
     <div class="section-title">2. 週六時間 (單位：分鐘)</div>
-    <div class="calendar-note">依所選月份自動顯示全部週六；若週六同時為國定假日，會在日期旁標註並只在本區填寫。</div>
+    <div class="calendar-note">依所選月份或日期區間自動顯示全部週六；若週六同時為國定假日，會在日期旁標註並只在本區填寫。</div>
     <div id="saturdayContainer"></div>
     <!-- 週六超時警告專區 -->
     <div id="saturdayAlerts" class="alert-container"></div>
@@ -376,7 +403,7 @@
     <div class="results-card">
         
         <div class="result-row" style="background-color: #eef6fb; padding: 18px 15px; border-radius: 6px; align-items: center; border: 1px solid #d4e6f1;">
-            <span class="result-label" style="font-size: 1.2rem; color: #1a5276; margin-top:0;">本月總時數 (大盤總時數)：</span>
+            <span class="result-label" style="font-size: 1.2rem; color: #1a5276; margin-top:0;">期間總時數 (大盤總時數)：</span>
             <div class="result-value-container">
                 <span class="result-value" id="grandTotal" style="font-size: 1.5rem; color: #1a5276;">0.00 小時</span>
                 <div class="sub-result" style="color:#1a5276;">(全家寶 + 總交通 + 團督 + 颱風)</div>
@@ -398,15 +425,15 @@
             <div class="result-value-container">
                 <span class="result-value" id="weekdayOvertimeDisplay">0.00 小時</span>
                 <div id="weekdayShortageLabel" class="shortage-label">應上不足</div>
-                <div class="sub-result">(本月總時數 - 週六 - 國定 - 颱風 - 應上)</div>
+                <div class="sub-result">(期間總時數 - 週六 - 國定 - 颱風 - 應上)</div>
             </div>
         </div>
 
         <div class="result-row">
-            <span class="result-label">本月平日實際工時：</span>
+            <span class="result-label">期間平日實際工時：</span>
             <div class="result-value-container">
                 <span class="result-value" id="weekdayTotal">0.00 小時</span>
-                <div class="sub-result">(本月總時數 - 週六 - 國定 - 颱風)</div>
+                <div class="sub-result">(期間總時數 - 週六 - 國定 - 颱風)</div>
             </div>
         </div>
 
@@ -491,12 +518,13 @@
         ]
     };
 
-    let activeYear = null;
-    let activeMonth = null;
+    let activePeriod = null;
 
     function initializeCalendarSelectors() {
         const yearSelect = document.getElementById('calendarYear');
         const monthSelect = document.getElementById('calendarMonth');
+        const rangeStart = document.getElementById('rangeStart');
+        const rangeEnd = document.getElementById('rangeEnd');
         const today = new Date();
         const supportedYears = Object.keys(officialHolidays).map(Number);
         const defaultYear = supportedYears.includes(today.getFullYear())
@@ -511,12 +539,22 @@
             const selected = month === today.getMonth() + 1 ? ' selected' : '';
             return `<option value="${month}"${selected}>${month} 月</option>`;
         }).join('');
+
+        const minDate = `${supportedYears[0]}-01-01`;
+        const maxDate = `${supportedYears[supportedYears.length - 1]}-12-31`;
+        rangeStart.min = minDate;
+        rangeStart.max = maxDate;
+        rangeEnd.min = minDate;
+        rangeEnd.max = maxDate;
+        setRangeToSelectedMonth();
     }
 
-    function formatDateLabel(date, holidayName = '') {
+    function formatDateLabel(date, holidayName = '', includeYear = false) {
+        const year = date.getUTCFullYear();
         const month = String(date.getUTCMonth() + 1).padStart(2, '0');
         const day = String(date.getUTCDate()).padStart(2, '0');
-        return `${month}/${day}（六${holidayName ? `・${holidayName}` : ''}）`;
+        const dateText = includeYear ? `${year}/${month}/${day}` : `${month}/${day}`;
+        return `${dateText}（六${holidayName ? `・${holidayName}` : ''}）`;
     }
 
     function createTimeRow(prefix, index, label, category) {
@@ -540,69 +578,187 @@
         getEditableInputs().forEach(input => input.value = '');
     }
 
-    function handlePeriodChange() {
-        const yearSelect = document.getElementById('calendarYear');
-        const monthSelect = document.getElementById('calendarMonth');
+    function setRangeToSelectedMonth() {
+        const year = Number(document.getElementById('calendarYear').value);
+        const month = Number(document.getElementById('calendarMonth').value);
+        const monthText = String(month).padStart(2, '0');
+        const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+        document.getElementById('rangeStart').value = `${year}-${monthText}-01`;
+        document.getElementById('rangeEnd').value = `${year}-${monthText}-${String(lastDay).padStart(2, '0')}`;
+    }
 
-        if (activeYear !== null && hasEnteredData()) {
-            const confirmed = confirm('切換年月會清除目前已填寫的工時資料，確定要切換嗎？');
+    function updatePeriodModeVisibility() {
+        const isRange = document.getElementById('periodMode').value === 'range';
+        document.querySelectorAll('.month-period-field').forEach(element => {
+            element.classList.toggle('is-hidden', isRange);
+        });
+        document.querySelectorAll('.range-period-field').forEach(element => {
+            element.classList.toggle('is-hidden', !isRange);
+        });
+    }
+
+    function getPeriodSelection() {
+        const mode = document.getElementById('periodMode').value;
+        if (mode === 'range') {
+            return {
+                mode,
+                start: document.getElementById('rangeStart').value,
+                end: document.getElementById('rangeEnd').value
+            };
+        }
+
+        return {
+            mode,
+            year: String(document.getElementById('calendarYear').value),
+            month: String(document.getElementById('calendarMonth').value)
+        };
+    }
+
+    function restorePeriodSelection(period) {
+        if (!period) return;
+        document.getElementById('periodMode').value = period.mode;
+        if (period.mode === 'range') {
+            document.getElementById('rangeStart').value = period.start;
+            document.getElementById('rangeEnd').value = period.end;
+        } else {
+            document.getElementById('calendarYear').value = period.year;
+            document.getElementById('calendarMonth').value = period.month;
+        }
+        updatePeriodModeVisibility();
+        showPeriodError('');
+    }
+
+    function periodsEqual(first, second) {
+        return JSON.stringify(first) === JSON.stringify(second);
+    }
+
+    function showPeriodError(message) {
+        const error = document.getElementById('periodError');
+        error.textContent = message;
+        error.style.display = message ? 'block' : 'none';
+    }
+
+    function validatePeriod(period) {
+        if (period.mode !== 'range') return '';
+        if (!period.start || !period.end) return '請完整選擇開始日期與結束日期。';
+        if (period.start > period.end) return '開始日期不可晚於結束日期。';
+
+        const startInput = document.getElementById('rangeStart');
+        if (period.start < startInput.min || period.end > startInput.max) {
+            return `目前可計算的日期範圍為 ${startInput.min} 至 ${startInput.max}。`;
+        }
+        return '';
+    }
+
+    function handleModeChange() {
+        if (document.getElementById('periodMode').value === 'range') {
+            setRangeToSelectedMonth();
+        }
+        updatePeriodModeVisibility();
+        handlePeriodChange();
+    }
+
+    function handlePeriodChange() {
+        const nextPeriod = getPeriodSelection();
+        const validationMessage = validatePeriod(nextPeriod);
+        if (validationMessage) {
+            showPeriodError(validationMessage);
+            return;
+        }
+        showPeriodError('');
+
+        if (activePeriod && !periodsEqual(activePeriod, nextPeriod) && hasEnteredData()) {
+            const confirmed = confirm('切換計算期間會清除目前已填寫的工時資料，確定要切換嗎？');
             if (!confirmed) {
-                yearSelect.value = activeYear;
-                monthSelect.value = activeMonth;
+                restorePeriodSelection(activePeriod);
                 return;
             }
         }
 
         clearCalculationInputs();
-        generateMonthRows();
+        generatePeriodRows(nextPeriod);
     }
 
-    function generateMonthRows() {
-        const year = Number(document.getElementById('calendarYear').value);
-        const month = Number(document.getElementById('calendarMonth').value);
-        const monthText = String(month).padStart(2, '0');
-        const monthHolidays = (officialHolidays[year] || [])
-            .filter(([date]) => date.startsWith(`${year}-${monthText}-`));
-        const holidayMap = new Map(monthHolidays);
-        const allHolidayDates = new Set((officialHolidays[year] || []).map(([date]) => date));
+    function getPeriodBounds(period) {
+        if (period.mode === 'range') {
+            return {
+                start: new Date(`${period.start}T00:00:00Z`),
+                end: new Date(`${period.end}T00:00:00Z`)
+            };
+        }
+
+        const year = Number(period.year);
+        const month = Number(period.month);
+        return {
+            start: new Date(Date.UTC(year, month - 1, 1)),
+            end: new Date(Date.UTC(year, month, 0))
+        };
+    }
+
+    function generatePeriodRows(period = getPeriodSelection()) {
+        const { start, end } = getPeriodBounds(period);
+        const allHolidayEntries = Object.values(officialHolidays).flat();
+        const holidayMap = new Map(allHolidayEntries);
+        const allHolidayDates = new Set(holidayMap.keys());
+        const periodHolidays = [...holidayMap.entries()].filter(([date]) => {
+            const holidayDate = new Date(`${date}T00:00:00Z`);
+            return holidayDate >= start && holidayDate <= end;
+        });
         const saturdays = [];
-        const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
         let workdayCount = 0;
 
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(Date.UTC(year, month - 1, day));
+        for (let date = new Date(start); date <= end; date.setUTCDate(date.getUTCDate() + 1)) {
             const isoDate = date.toISOString().slice(0, 10);
-            if (date.getUTCDay() === 6) saturdays.push(date);
+            if (date.getUTCDay() === 6) saturdays.push(new Date(date));
             if (date.getUTCDay() >= 1 && date.getUTCDay() <= 5 && !allHolidayDates.has(isoDate)) {
                 workdayCount++;
             }
         }
 
         const requiredHours = workdayCount * 8;
-        document.getElementById('requiredHours').value = requiredHours;
-        document.getElementById('workdaySummary').innerText = `${workdayCount} 個工作天 × 8 小時＝${requiredHours} 小時`;
+        const requiredInput = document.getElementById('requiredHours');
+        requiredInput.value = requiredHours;
+        requiredInput.dataset.autoValue = String(requiredHours);
+        requiredInput.dataset.workdayCount = String(workdayCount);
+        updateRequiredHoursSummary();
 
         document.getElementById('saturdayContainer').innerHTML = saturdays
             .map((date, index) => {
                 const isoDate = date.toISOString().slice(0, 10);
-                return createTimeRow('sat', index + 1, formatDateLabel(date, holidayMap.get(isoDate)), 'sat');
+                return createTimeRow('sat', index + 1, formatDateLabel(date, holidayMap.get(isoDate), period.mode === 'range'), 'sat');
             })
-            .join('');
+            .join('') || '<div class="empty-state">所選期間沒有週六</div>';
 
-        const nonSaturdayHolidays = monthHolidays.filter(([date]) => {
+        const nonSaturdayHolidays = periodHolidays.filter(([date]) => {
             return new Date(`${date}T00:00:00Z`).getUTCDay() !== 6;
         });
         document.getElementById('holidayContainer').innerHTML = nonSaturdayHolidays.length
             ? nonSaturdayHolidays.map(([date, name], index) => {
                 const dateObject = new Date(`${date}T00:00:00Z`);
                 const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-                const label = `${date.slice(5).replace('-', '/')}（${weekdays[dateObject.getUTCDay()]}・${name}）`;
+                const dateText = period.mode === 'range' ? date.replaceAll('-', '/') : date.slice(5).replace('-', '/');
+                const label = `${dateText}（${weekdays[dateObject.getUTCDay()]}・${name}）`;
                 return createTimeRow('hol', index + 1, label, 'hol');
             }).join('')
-            : '<div class="empty-state">本月沒有需要另外填寫的國定假日</div>';
+            : '<div class="empty-state">所選期間沒有需要另外填寫的國定假日</div>';
 
-        activeYear = String(year);
-        activeMonth = String(month);
+        activePeriod = { ...period };
+        calculateHours();
+    }
+
+    function updateRequiredHoursSummary() {
+        const input = document.getElementById('requiredHours');
+        const autoValue = Number(input.dataset.autoValue || 0);
+        const workdayCount = Number(input.dataset.workdayCount || 0);
+        const currentValue = getVal('requiredHours');
+        const manualText = currentValue !== autoValue ? `；目前手動設定為 ${currentValue} 小時` : '';
+        document.getElementById('workdaySummary').innerText = `自動計算：${workdayCount} 個工作日 × 8 小時＝${autoValue} 小時${manualText}`;
+    }
+
+    function handleRequiredHoursInput() {
+        const input = document.getElementById('requiredHours');
+        validateNumber(input);
+        updateRequiredHoursSummary();
         calculateHours();
     }
 
@@ -721,14 +877,15 @@
     }
 
     function clearFields() {
-        if(confirm('確定要清除所有填寫的資料嗎？(本月應上時數將會保留)')) {
+        if(confirm('確定要清除所有填寫的資料嗎？（應上工時將會保留）')) {
             clearCalculationInputs();
             calculateHours();
         }
     }
 
     initializeCalendarSelectors();
-    generateMonthRows();
+    updatePeriodModeVisibility();
+    generatePeriodRows();
 </script>
 
 </body>
