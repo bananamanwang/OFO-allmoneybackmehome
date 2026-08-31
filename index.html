@@ -322,7 +322,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.08.31第五版</span>
+        <span>2026.08.31第六版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -434,6 +434,14 @@
             <div class="result-value-container">
                 <span class="result-value" id="weekdayTotal">0.00 小時</span>
                 <div class="sub-result">(期間總時數 - 週六 - 國定 - 颱風)</div>
+            </div>
+        </div>
+
+        <div class="result-row">
+            <span class="result-label">總交通時間：</span>
+            <div class="result-value-container">
+                <span class="result-value" id="transportTotal">0.00 小時</span>
+                <div class="sub-result">(上方總交通分鐘 ÷ 60)</div>
             </div>
         </div>
 
@@ -860,6 +868,7 @@
         weekdayShortageLabel.style.display = hasData && weekdayOvertime < 0 ? 'inline-block' : 'none';
 
         document.getElementById('weekdayTotal').innerText = finalWeekdayTotal.toFixed(2) + " 小時";
+        document.getElementById('transportTotal').innerText = (transportMin / 60).toFixed(2) + " 小時";
         document.getElementById('saturdayTotal').innerText = saturdayHours.toFixed(2) + " 小時";
         document.getElementById('holidayTotal').innerText = holidayHoursOnly.toFixed(2) + " 小時";
         document.getElementById('typhoonTotal').innerText = typhoonHoursOnly.toFixed(2) + " 小時";
