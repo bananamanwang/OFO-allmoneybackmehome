@@ -253,7 +253,7 @@
             border-color: #b2ddff;
         }
 
-        .summary-card.required {
+        .summary-card.transport {
             color: #344054;
             background-color: #f2f4f7;
             border-color: #d0d5dd;
@@ -313,7 +313,7 @@
             border-radius: 8px;
         }
 
-        .detail-item.transport-detail {
+        .detail-item.required-detail {
             color: #475467;
             background-color: #f2f4f7;
         }
@@ -400,7 +400,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.08.31第七版</span>
+        <span>2026.08.31第八版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -481,14 +481,14 @@
     <div class="results-card">
         <div class="summary-grid">
             <div class="summary-card total">
-                <span class="summary-label">期間總工時</span>
+                <span class="summary-label">期間總工時（不含交通）</span>
                 <span class="summary-value" id="grandTotal">0.00 小時</span>
-                <span class="summary-help">全部實際工時合計</span>
+                <span class="summary-help">全家寶＋團督＋颱風</span>
             </div>
-            <div class="summary-card required">
-                <span class="summary-label">應上工時</span>
-                <span class="summary-value" id="requiredHoursDisplay">0.00 小時</span>
-                <span class="summary-help">依工作日自動計算，可手動調整</span>
+            <div class="summary-card transport">
+                <span class="summary-label">總交通時間</span>
+                <span class="summary-value" id="transportTotal">0.00 小時</span>
+                <span class="summary-help">上方總交通分鐘換算</span>
             </div>
             <div class="summary-card overtime">
                 <span class="summary-label">總加班時數</span>
@@ -531,17 +531,17 @@
                         <span class="detail-value" id="typhoonTotal">0.00 小時</span>
                     </div>
                 </div>
-                <div class="detail-item transport-detail">
-                    <span class="detail-label">總交通時間</span>
+                <div class="detail-item required-detail">
+                    <span class="detail-label">應上工時</span>
                     <div class="detail-value-wrap">
-                        <span class="detail-value" id="transportTotal">0.00 小時</span>
+                        <span class="detail-value" id="requiredHoursDisplay">0.00 小時</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="calculation-note">
-            <strong>計算說明：</strong>期間總工時＝全家寶＋總交通＋團督＋颱風；總加班＝平日加班正數＋週六加班＋國定假日加班。平日加班為負數時不列入總加班。
+            <strong>計算說明：</strong>期間總工時不含交通＝全家寶＋團督＋颱風；總加班仍會計入交通時間，計算方式為平日加班正數＋週六加班＋國定假日加班。平日加班為負數時不列入總加班。
         </div>
 
         <div id="alertBox" class="alert-box"></div>
@@ -929,11 +929,13 @@
 
         const baseSystemHours = (weekdayMin + transportMin) / 60 + groupSupHours;
         const grandTotalHours = baseSystemHours + typhoonHoursOnly;
+        const transportHours = transportMin / 60;
+        const periodWorkHours = grandTotalHours - transportHours;
         const weekdayOvertime = grandTotalHours - saturdayHours - holidayHoursOnly - typhoonHoursOnly - requiredHours;
         const totalOvertime = Math.max(weekdayOvertime, 0) + saturdayHours + holidayHoursOnly;
         const finalWeekdayTotal = grandTotalHours - saturdayHours - holidayHoursOnly - typhoonHoursOnly;
 
-        document.getElementById('grandTotal').innerText = grandTotalHours.toFixed(2) + " 小時";
+        document.getElementById('grandTotal').innerText = periodWorkHours.toFixed(2) + " 小時";
         document.getElementById('requiredHoursDisplay').innerText = requiredHours.toFixed(2) + " 小時";
 
         const totalOtEl = document.getElementById('overtimeTotal');
@@ -947,7 +949,7 @@
         weekdayShortageLabel.style.display = hasData && weekdayOvertime < 0 ? 'inline-block' : 'none';
 
         document.getElementById('weekdayTotal').innerText = finalWeekdayTotal.toFixed(2) + " 小時";
-        document.getElementById('transportTotal').innerText = (transportMin / 60).toFixed(2) + " 小時";
+        document.getElementById('transportTotal').innerText = transportHours.toFixed(2) + " 小時";
         document.getElementById('saturdayTotal').innerText = saturdayHours.toFixed(2) + " 小時";
         document.getElementById('holidayTotal').innerText = holidayHoursOnly.toFixed(2) + " 小時";
         document.getElementById('typhoonTotal').innerText = typhoonHoursOnly.toFixed(2) + " 小時";
