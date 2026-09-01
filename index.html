@@ -405,7 +405,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.08.31第九版</span>
+        <span>2026.09.01第十版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -419,7 +419,7 @@
             <label for="periodMode">選取方式</label>
             <select id="periodMode" onchange="handleModeChange()">
                 <option value="month" selected>整月份</option>
-                <option value="range">日期區間（四週彈性工時）</option>
+                <option value="range">四週工時</option>
             </select>
         </div>
         <div class="input-group month-period-field">
@@ -431,12 +431,12 @@
             <select id="calendarMonth" onchange="handlePeriodChange()"></select>
         </div>
         <div class="input-group range-period-field is-hidden">
-            <label for="rangeStart">開始日期</label>
-            <input type="date" id="rangeStart" onchange="handlePeriodChange()">
+            <label for="rangeStart">週期第一天</label>
+            <input type="date" id="rangeStart" onchange="handleFourWeekStartChange()">
         </div>
         <div class="input-group range-period-field is-hidden">
-            <label for="rangeEnd">結束日期</label>
-            <input type="date" id="rangeEnd" onchange="handlePeriodChange()">
+            <label for="rangeEnd">週期結束日（自動）</label>
+            <input type="date" id="rangeEnd" readonly aria-readonly="true">
         </div>
         <div class="input-group">
             <label for="requiredHours">應上工時（工作日 × 8小時）</label>
@@ -468,7 +468,7 @@
     </div>
 
     <div class="section-title">2. 週六時間 (單位：分鐘)</div>
-    <div class="calendar-note">依所選月份或日期區間自動顯示全部週六；若週六同時為國定假日，會在日期旁標註並只在本區填寫。</div>
+    <div class="calendar-note">依所選月份或四週工時週期自動顯示全部週六；若週六同時為國定假日，會在日期旁標註並只在本區填寫。</div>
     <div id="saturdayContainer"></div>
     <!-- 週六超時警告專區 -->
     <div id="saturdayAlerts" class="alert-container"></div>
@@ -638,10 +638,12 @@
         const minDate = `${supportedYears[0]}-01-01`;
         const maxDate = `${supportedYears[supportedYears.length - 1]}-12-31`;
         rangeStart.min = minDate;
-        rangeStart.max = maxDate;
+        const latestRangeStart = new Date(`${maxDate}T00:00:00Z`);
+        latestRangeStart.setUTCDate(latestRangeStart.getUTCDate() - 27);
+        rangeStart.max = latestRangeStart.toISOString().slice(0, 10);
         rangeEnd.min = minDate;
         rangeEnd.max = maxDate;
-        setRangeToSelectedMonth();
+        setDefaultFourWeekPeriod();
     }
 
     function formatDateLabel(date, holidayName = '', includeYear = false) {
@@ -673,13 +675,31 @@
         getEditableInputs().forEach(input => input.value = '');
     }
 
-    function setRangeToSelectedMonth() {
-        const year = Number(document.getElementById('calendarYear').value);
-        const month = Number(document.getElementById('calendarMonth').value);
-        const monthText = String(month).padStart(2, '0');
-        const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-        document.getElementById('rangeStart').value = `${year}-${monthText}-01`;
-        document.getElementById('rangeEnd').value = `${year}-${monthText}-${String(lastDay).padStart(2, '0')}`;
+    function setDefaultFourWeekPeriod() {
+        const anchor = new Date('2026-07-19T00:00:00Z');
+        const now = new Date();
+        const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+        const cycleIndex = Math.floor((today - anchor) / (28 * 24 * 60 * 60 * 1000));
+        const start = new Date(anchor);
+        start.setUTCDate(start.getUTCDate() + cycleIndex * 28);
+        document.getElementById('rangeStart').value = start.toISOString().slice(0, 10);
+        syncFourWeekEnd();
+    }
+
+    function syncFourWeekEnd() {
+        const startValue = document.getElementById('rangeStart').value;
+        if (!startValue) {
+            document.getElementById('rangeEnd').value = '';
+            return;
+        }
+        const end = new Date(`${startValue}T00:00:00Z`);
+        end.setUTCDate(end.getUTCDate() + 27);
+        document.getElementById('rangeEnd').value = end.toISOString().slice(0, 10);
+    }
+
+    function handleFourWeekStartChange() {
+        syncFourWeekEnd();
+        handlePeriodChange();
     }
 
     function updatePeriodModeVisibility() {
@@ -735,19 +755,19 @@
 
     function validatePeriod(period) {
         if (period.mode !== 'range') return '';
-        if (!period.start || !period.end) return '請完整選擇開始日期與結束日期。';
-        if (period.start > period.end) return '開始日期不可晚於結束日期。';
+        if (!period.start || !period.end) return '請選擇四週週期的第一天。';
 
         const startInput = document.getElementById('rangeStart');
-        if (period.start < startInput.min || period.end > startInput.max) {
-            return `目前可計算的日期範圍為 ${startInput.min} 至 ${startInput.max}。`;
+        if (period.start < startInput.min || period.start > startInput.max) {
+            return `四週週期第一天目前可選 ${startInput.min} 至 ${startInput.max}。`;
         }
         return '';
     }
 
     function handleModeChange() {
         if (document.getElementById('periodMode').value === 'range') {
-            setRangeToSelectedMonth();
+            if (!document.getElementById('rangeStart').value) setDefaultFourWeekPeriod();
+            syncFourWeekEnd();
         }
         updatePeriodModeVisibility();
         handlePeriodChange();
