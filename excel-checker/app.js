@@ -252,6 +252,8 @@ function calculate() {
   const weekdayActual=service+transport+supervision+daycare-saturday-holiday;
   const weekdayOvertime=weekdayActual-required;
   const overtime=Math.max(weekdayOvertime,0)+saturday+holiday;
+  $("overtimeCard").classList.toggle('overtime-warning',overtime>46);
+  $("overtimeWarning").classList.toggle('hidden',overtime<=46);
   if(overtime>46) warnings.push(`總加班 ${overtime.toFixed(2)} 小時，已超過 46 小時。`);
   if(!inRange.length) warnings.push('所選期間找不到任何每日資料，請檢查期間與檔案月份。');
   setText('periodWork',fmt(periodWork)); setText('transportTotal',fmt(transport)); setText('overtimeTotal',fmt(overtime));
@@ -312,6 +314,7 @@ function renderWeeklyCheck(period,days,records,coveredMonths) {
 function clearResults(){
   ['periodWork','transportTotal','overtimeTotal','requiredResult','weekdayActual','weekdayOvertime','saturdayOvertime','holidayOvertime','serviceTotal','supervisionResult','daycareResult'].forEach(id=>setText(id,'—'));
   $("shortageBadge").classList.add('hidden'); $("warnings").classList.add('hidden'); $("resultsPanel").classList.add('muted');
+  $("overtimeCard").classList.remove('overtime-warning'); $("overtimeWarning").classList.add('hidden');
   $("specialDayBody").innerHTML='<tr><td colspan="6" class="empty">尚未產生資料</td></tr>';
   $("weeklyBody").innerHTML='<tr><td colspan="6" class="empty">尚未產生資料</td></tr>';
 }
