@@ -36,9 +36,10 @@ function init() {
   for (let y=2026;y<=2027;y++) $("year").add(new Option(`${y} 年`, y));
   for (let m=1;m<=12;m++) $("month").add(new Option(`${m} 月`, m));
   $("year").value = "2026"; $("month").value = "8";
-  $("startDate").value = "2026-08-01"; $("endDate").value = "2026-08-31";
+  $("startDate").value = "2026-08-16"; syncFourWeekEnd();
   $("mode").addEventListener("change", () => { toggleMode(); periodChanged(); });
-  ["year","month","startDate","endDate"].forEach(id => $(id).addEventListener("change", periodChanged));
+  ["year","month"].forEach(id => $(id).addEventListener("change", periodChanged));
+  $("startDate").addEventListener("change", () => { syncFourWeekEnd(); periodChanged(); });
   $("requiredHours").addEventListener("input", () => { state.requiredManual=true; calculate(); });
   ["supervisionHours","daycareHours"].forEach(id => $(id).addEventListener("input", calculate));
   $("fileInput").addEventListener("change", e => loadFiles(e.target.files));
@@ -54,6 +55,14 @@ function toggleMode() {
   const range = $("mode").value === "range";
   document.querySelectorAll(".month-field").forEach(el => el.classList.toggle("hidden", range));
   document.querySelectorAll(".range-field").forEach(el => el.classList.toggle("hidden", !range));
+}
+
+function syncFourWeekEnd() {
+  const start=utcDate($("startDate").value);
+  if(Number.isNaN(start.getTime())) { $("endDate").value=''; return; }
+  const end=new Date(start);
+  end.setUTCDate(end.getUTCDate()+27);
+  $("endDate").value=iso(end);
 }
 
 function getPeriod() {
@@ -73,8 +82,7 @@ function daysBetween(start,end) {
 }
 
 function periodValidationError(period) {
-  if (Number.isNaN(period.start.getTime()) || Number.isNaN(period.end.getTime())) return '請完整選擇開始日期與結束日期。';
-  if (period.start>period.end) return '結束日期不得早於開始日期，請重新選擇。';
+  if (Number.isNaN(period.start.getTime()) || Number.isNaN(period.end.getTime())) return '請選擇四週週期的第一天。';
   return '';
 }
 
@@ -99,7 +107,7 @@ function periodChanged() {
   $("requiredHours").value=(workdays*8).toFixed(2).replace(/\.00$/,'');
   $("requiredHint").textContent=`自動計算：${workdays} 個工作日 × 8 小時＝${workdays*8} 小時（仍可手動修改）`;
   $("leaveNote").textContent=$("mode").value==='range'
-    ? '目前為日期區間模式；請假欄仍是各 Excel 表頭的整月份總數，不會依日期區間切割。'
+    ? '目前為四週工時模式；請假欄仍是各 Excel 表頭的整月份總數，不會依四週期間切割。'
     : '請假欄為 Excel 表頭記載的整月份總數。';
   renderCalendar(days);
   calculate();
