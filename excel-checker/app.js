@@ -41,7 +41,7 @@ function init() {
   ["year","month"].forEach(id => $(id).addEventListener("change", periodChanged));
   $("startDate").addEventListener("change", () => { syncFourWeekEnd(); periodChanged(); });
   $("requiredHours").addEventListener("input", () => { state.requiredManual=true; calculate(); });
-  ["supervisionHours","daycareHours"].forEach(id => $(id).addEventListener("input", calculate));
+  ["supervisionHours","daycareHours","typhoon1Min","typhoon2Min","typhoon3Min"].forEach(id => $(id).addEventListener("input", calculate));
   $("fileInput").addEventListener("change", e => loadFiles(e.target.files));
   $("resetButton").addEventListener("click", resetFiles);
   const zone = $("dropZone");
@@ -97,7 +97,8 @@ function periodChanged() {
     state.requiredManual=false;
     $("requiredHours").value='';
     $("requiredHint").textContent='暫停計算，請先修正日期區間。';
-    $("calendarTags").innerHTML='';
+    $("saturdayTags").innerHTML='';
+    $("holidayTags").innerHTML='';
     calculate();
     return;
   }
@@ -114,11 +115,16 @@ function periodChanged() {
 }
 
 function renderCalendar(days) {
-  const special=days.filter(d => d.getUTCDay()===6 || holidayMap.has(iso(d)));
-  $("calendarTags").innerHTML=special.length ? special.map(d => {
-    const id=iso(d), holiday=holidayMap.get(id), cls=holiday?"tag holiday":"tag";
-    return `<span class="${cls}">${id.slice(5).replace('-','/')} ${holiday || '週六'}</span>`;
-  }).join('') : '<span class="tag">期間內沒有週六或國定假日</span>';
+  const saturdays=days.filter(d => d.getUTCDay()===6);
+  const holidays=days.filter(d => holidayMap.has(iso(d)));
+  $("saturdayTags").innerHTML=saturdays.length ? saturdays.map(d => {
+    const id=iso(d), holiday=holidayMap.get(id);
+    return `<span class="tag">${id.slice(5).replace('-','/')} 週六${holiday?`／${esc(holiday)}`:''}</span>`;
+  }).join('') : '<span class="tag empty-tag">期間內沒有週六</span>';
+  $("holidayTags").innerHTML=holidays.length ? holidays.map(d => {
+    const id=iso(d), saturday=d.getUTCDay()===6;
+    return `<span class="tag holiday">${id.slice(5).replace('-','/')} ${esc(holidayMap.get(id))}${saturday?'（週六）':''}</span>`;
+  }).join('') : '<span class="tag empty-tag">期間內沒有國定假日或補假</span>';
 }
 
 async function loadFiles(fileList) {
@@ -239,7 +245,10 @@ function calculate() {
   }
   const inRange=[...merged.values()].filter(r=>utcDate(r.date)>=p.start && utcDate(r.date)<=p.end);
   const serviceMin=inRange.reduce((n,r)=>n+r.work,0), transportMin=inRange.reduce((n,r)=>n+r.transport,0);
-  const supervision=+( $("supervisionHours").value || 0), daycare=+( $("daycareHours").value || 0), required=+( $("requiredHours").value || 0);
+  const supervision=Math.max(0,+($("supervisionHours").value || 0));
+  const daycare=Math.max(0,+($("daycareHours").value || 0));
+  const required=Math.max(0,+($("requiredHours").value || 0));
+  const typhoonMin=[1,2,3].reduce((sum,i)=>sum+Math.max(0,+($("typhoon${i}Min").value || 0)),0);
   let saturdayMin=0, holidayMin=0;
   const special=[];
   for(const d of days) {
@@ -247,8 +256,8 @@ function calculate() {
     if(d.getUTCDay()===6) { saturdayMin+=r.work+r.transport; special.push({date,type:holidayMap.get(date)?`週六／${holidayMap.get(date)}`:'週六',...r}); }
     else if(holidayMap.has(date)) { holidayMin+=r.work+r.transport; special.push({date,type:holidayMap.get(date),...r}); }
   }
-  const service=hours(serviceMin), transport=hours(transportMin), saturday=hours(saturdayMin), holiday=hours(holidayMin);
-  const periodWork=service+supervision+daycare;
+  const service=hours(serviceMin), transport=hours(transportMin), saturday=hours(saturdayMin), holiday=hours(holidayMin), typhoon=hours(typhoonMin);
+  const periodWork=service+supervision+daycare+typhoon;
   const weekdayActual=service+transport+supervision+daycare-saturday-holiday;
   const weekdayOvertime=weekdayActual-required;
   const overtime=Math.max(weekdayOvertime,0)+saturday+holiday;
@@ -259,7 +268,7 @@ function calculate() {
   setText('periodWork',fmt(periodWork)); setText('transportTotal',fmt(transport)); setText('overtimeTotal',fmt(overtime));
   setText('requiredResult',fmt(required)); setText('weekdayActual',fmt(weekdayActual)); setText('weekdayOvertime',fmt(weekdayOvertime));
   setText('saturdayOvertime',fmt(saturday)); setText('holidayOvertime',fmt(holiday)); setText('serviceTotal',fmt(service));
-  setText('supervisionResult',fmt(supervision)); setText('daycareResult',fmt(daycare));
+  setText('supervisionResult',fmt(supervision)); setText('daycareResult',fmt(daycare)); setText('typhoonResult',fmt(typhoon));
   $("shortageBadge").classList.toggle('hidden',weekdayOvertime>=0);
   $("specialDayBody").innerHTML=special.length ? special.map(r=>{
     const total=hours(r.work+r.transport), over=total>8;
@@ -312,7 +321,7 @@ function renderWeeklyCheck(period,days,records,coveredMonths) {
   $("weeklyBody").innerHTML=rows.length?rows.join(''):'<tr><td colspan="6" class="empty">所選期間沒有可檢查的週次</td></tr>';
 }
 function clearResults(){
-  ['periodWork','transportTotal','overtimeTotal','requiredResult','weekdayActual','weekdayOvertime','saturdayOvertime','holidayOvertime','serviceTotal','supervisionResult','daycareResult'].forEach(id=>setText(id,'—'));
+  ['periodWork','transportTotal','overtimeTotal','requiredResult','weekdayActual','weekdayOvertime','saturdayOvertime','holidayOvertime','serviceTotal','supervisionResult','daycareResult','typhoonResult'].forEach(id=>setText(id,'—'));
   $("shortageBadge").classList.add('hidden'); $("warnings").classList.add('hidden'); $("resultsPanel").classList.add('muted');
   $("overtimeCard").classList.remove('overtime-warning'); $("overtimeWarning").classList.add('hidden');
   $("specialDayBody").innerHTML='<tr><td colspan="6" class="empty">尚未產生資料</td></tr>';
