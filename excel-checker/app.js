@@ -30,6 +30,7 @@ const iso = d => `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTC
 const utcDate = value => new Date(`${value}T00:00:00Z`);
 const hours = minutes => minutes / 60;
 const fmt = value => `${Number(value).toFixed(2)} 小時`;
+const round2 = value => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const esc = value => String(value).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 
 function init() {
@@ -40,15 +41,16 @@ function init() {
   supportedYears.forEach(y => $("year").add(new Option(`${y} 年`, y)));
   for (let m=1;m<=12;m++) $("month").add(new Option(`${m} 月`, m));
   $("year").value=String(currentYear); $("month").value=String(currentMonth);
-  setPeriodDateLimits(supportedYears);
-  setDefaultFourWeekPeriod();
+  const fourWeekStarts=buildFourWeekOptions(supportedYears);
+  setDefaultFourWeekPeriod(fourWeekStarts);
   $("mode").addEventListener("change", () => { toggleMode(); periodChanged(); });
   ["year","month"].forEach(id => $(id).addEventListener("change", periodChanged));
   $("startDate").addEventListener("change", () => { syncFourWeekEnd(); periodChanged(); });
-  $("requiredHours").addEventListener("input", () => { validateNumber($("requiredHours")); state.requiredManual=true; calculate(); });
-  ["supervisionHours","daycareHours","typhoon1Min","typhoon2Min","typhoon3Min"].forEach(id => $(id).addEventListener("input", () => { validateNumber($(id)); calculate(); }));
+  bindNumberField("requiredHours",true);
+  ["supervisionHours","daycareHours","typhoon1Min","typhoon2Min","typhoon3Min"].forEach(id => bindNumberField(id));
   $("fileInput").addEventListener("change", e => loadFiles(e.target.files));
   $("resetButton").addEventListener("click", resetFiles);
+  $("clearAllButton").addEventListener("click", clearAll);
   const zone = $("dropZone");
   ["dragenter","dragover"].forEach(type => zone.addEventListener(type, e => {e.preventDefault();zone.classList.add("drag")}));
   ["dragleave","drop"].forEach(type => zone.addEventListener(type, e => {e.preventDefault();zone.classList.remove("drag")}));
@@ -56,32 +58,83 @@ function init() {
   periodChanged();
 }
 
-function setPeriodDateLimits(supportedYears) {
-  const minDate=`${supportedYears[0]}-01-01`, maxDate=`${supportedYears.at(-1)}-12-31`;
-  const latestStart=utcDate(maxDate); latestStart.setUTCDate(latestStart.getUTCDate()-27);
-  $("startDate").min=minDate; $("startDate").max=iso(latestStart);
-  $("endDate").min=minDate; $("endDate").max=maxDate;
+function buildFourWeekOptions(supportedYears) {
+  const min=utcDate(`${supportedYears[0]}-01-01`), max=utcDate(`${supportedYears.at(-1)}-12-31`);
+  const anchor=utcDate('2026-07-19');
+  let first=new Date(anchor);
+  while(true) {
+    const previous=new Date(first); previous.setUTCDate(previous.getUTCDate()-28);
+    if(previous<min) break;
+    first=previous;
+  }
+  const starts=[];
+  for(let start=new Date(first);;start.setUTCDate(start.getUTCDate()+28)) {
+    const end=new Date(start); end.setUTCDate(end.getUTCDate()+27);
+    if(end>max) break;
+    starts.push(new Date(start));
+  }
+  $("startDate").innerHTML=starts.map(start => {
+    const end=new Date(start); end.setUTCDate(end.getUTCDate()+27);
+    return `<option value="${iso(start)}">${iso(start)} ～ ${iso(end)}</option>`;
+  }).join('');
+  return starts;
 }
 
-function setDefaultFourWeekPeriod() {
-  const anchor=utcDate('2026-07-19');
+function setDefaultFourWeekPeriod(starts) {
   const now=new Date(), today=new Date(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()));
-  const cycle=Math.floor((today-anchor)/(28*24*60*60*1000));
-  const start=new Date(anchor); start.setUTCDate(start.getUTCDate()+cycle*28);
-  const min=utcDate($("startDate").min), max=utcDate($("startDate").max);
-  if(start<min) $("startDate").value=iso(min);
-  else if(start>max) $("startDate").value=iso(max);
-  else $("startDate").value=iso(start);
+  const selected=starts.find(start => {
+    const end=new Date(start); end.setUTCDate(end.getUTCDate()+27);
+    return today>=start && today<=end;
+  }) || (today<starts[0]?starts[0]:starts.at(-1));
+  $("startDate").value=selected?iso(selected):'';
   syncFourWeekEnd();
 }
 
-function validateNumber(input) {
+function clampNumber(input) {
   if(input.value==='') return;
   let value=Number(input.value);
   if(!Number.isFinite(value)) { input.value=''; return; }
   if(input.min!=='' && value<Number(input.min)) value=Number(input.min);
   if(input.max!=='' && value>Number(input.max)) value=Number(input.max);
-  input.value=String(value);
+  if(value!==Number(input.value)) input.value=String(value);
+}
+
+function stepDecimals(input) {
+  return (String(input.step).split('.')[1] || '').length;
+}
+
+function numberValue(id) {
+  const input=$(id);
+  let value=Number(input.value || 0);
+  if(!Number.isFinite(value)) value=0;
+  if(input.min!=='' && value<Number(input.min)) value=Number(input.min);
+  if(input.max!=='' && value>Number(input.max)) value=Number(input.max);
+  const step=Number(input.step);
+  if(Number.isFinite(step) && step>0) {
+    const base=input.min===''?0:Number(input.min);
+    value=base+Math.round((value-base)/step)*step;
+    value=Number(value.toFixed(stepDecimals(input)));
+  }
+  return value;
+}
+
+function normalizeNumber(input) {
+  if(input.value==='') return;
+  input.value=String(numberValue(input.id));
+}
+
+function bindNumberField(id,marksRequiredManual=false) {
+  const input=$(id);
+  input.addEventListener('input',() => {
+    clampNumber(input);
+    if(marksRequiredManual) state.requiredManual=true;
+    calculate();
+  });
+  input.addEventListener('change',() => {
+    normalizeNumber(input);
+    if(marksRequiredManual) state.requiredManual=true;
+    calculate();
+  });
 }
 
 function toggleMode() {
@@ -116,6 +169,7 @@ function daysBetween(start,end) {
 
 function periodValidationError(period) {
   if (Number.isNaN(period.start.getTime()) || Number.isNaN(period.end.getTime())) return '請選擇四週週期的第一天。';
+  if ($("mode").value==='range' && ![...$("startDate").options].some(option => option.value===$("startDate").value)) return '請選擇有效的四週週期。';
   return '';
 }
 
@@ -270,18 +324,25 @@ function calculate() {
   const covered=new Set(valid.map(f=>`${f.year}-${pad(f.month)}`));
   const needed=new Set(days.map(d=>`${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}`));
   const missing=[...needed].filter(m=>!covered.has(m));
-  if(missing.length) warnings.push(`缺少 ${missing.join('、')} 的 Excel 檔，本次結果可能不完整。`);
   const merged=new Map();
   for(const f of valid) for(const r of f.records) {
     if(merged.has(r.date)) warnings.push(`日期 ${r.date} 重複出現，僅採用第一筆。`);
     else merged.set(r.date,r);
   }
   const inRange=[...merged.values()].filter(r=>utcDate(r.date)>=p.start && utcDate(r.date)<=p.end);
+  if(missing.length) {
+    stopCalculation(p,warnings,`缺少 ${missing.join('、')} 的 Excel 檔，已停止計算。請補上完整月份檔案後再驗算。`);
+    return;
+  }
+  if(!inRange.length) {
+    stopCalculation(p,warnings,'所選期間找不到任何每日資料，已停止計算。請檢查期間與檔案月份。');
+    return;
+  }
   const serviceMin=inRange.reduce((n,r)=>n+r.work,0), transportMin=inRange.reduce((n,r)=>n+r.transport,0);
-  const supervision=Math.max(0,+($("supervisionHours").value || 0));
-  const daycare=Math.max(0,+($("daycareHours").value || 0));
-  const required=Math.max(0,+($("requiredHours").value || 0));
-  const typhoonMin=[1,2,3].reduce((sum,i)=>sum+Math.max(0,+($(`typhoon${i}Min`).value || 0)),0);
+  const supervision=numberValue("supervisionHours");
+  const daycare=numberValue("daycareHours");
+  const required=numberValue("requiredHours");
+  const typhoonMin=[1,2,3].reduce((sum,i)=>sum+numberValue(`typhoon${i}Min`),0);
   let saturdayMin=0, holidayMin=0;
   const special=[];
   for(const d of days) {
@@ -293,11 +354,10 @@ function calculate() {
   const periodWork=service+supervision+daycare+typhoon;
   const weekdayActual=service+transport+supervision+daycare-saturday-holiday;
   const weekdayOvertime=weekdayActual-required;
-  const overtime=Math.max(weekdayOvertime,0)+saturday+holiday;
+  const overtime=round2(Math.max(weekdayOvertime,0)+saturday+holiday);
   $("overtimeCard").classList.toggle('overtime-warning',overtime>46);
   $("overtimeWarning").classList.toggle('hidden',overtime<=46);
   if(overtime>46) warnings.push(`總加班 ${overtime.toFixed(2)} 小時，已超過 46 小時。`);
-  if(!inRange.length) warnings.push('所選期間找不到任何每日資料，請檢查期間與檔案月份。');
   setText('periodWork',fmt(periodWork)); setText('transportTotal',fmt(transport)); setText('overtimeTotal',fmt(overtime));
   setText('requiredResult',fmt(required)); setText('weekdayActual',fmt(weekdayActual)); setText('weekdayOvertime',fmt(weekdayOvertime));
   setText('saturdayOvertime',fmt(saturday)); setText('holidayOvertime',fmt(holiday)); setText('serviceTotal',fmt(service));
@@ -320,6 +380,15 @@ function renderWarnings(warnings,blocking=false) {
   $("warnings").innerHTML=unique.map(w=>`<div>⚠ ${esc(w)}</div>`).join('');
   $("warnings").classList.toggle('hidden',!unique.length);
   $("warnings").classList.toggle('blocking',blocking);
+}
+function stopCalculation(period,warnings,message) {
+  clearResults();
+  $("periodLabel").textContent=`${period.label}｜已停止計算`;
+  const safe=esc(message);
+  $("specialDayBody").innerHTML=`<tr><td colspan="6" class="empty check-bad">${safe}</td></tr>`;
+  $("weeklyBody").innerHTML=`<tr><td colspan="6" class="empty check-bad">${safe}</td></tr>`;
+  renderWarnings([...warnings,message],true);
+  $("resultsPanel").classList.remove('hidden','muted');
 }
 function renderWeeklyCheck(period,days,records,coveredMonths) {
   const weekKeys=new Map();
@@ -360,6 +429,14 @@ function clearResults(){
   $("specialDayBody").innerHTML='<tr><td colspan="6" class="empty">尚未產生資料</td></tr>';
   $("weeklyBody").innerHTML='<tr><td colspan="6" class="empty">尚未產生資料</td></tr>';
 }
-function resetFiles(){state.files=[];$("fileInput").value='';$("fileTableWrap").classList.add('hidden');$("status").classList.add('hidden');calculate()}
+function clearFileState(){state.files=[];$("fileInput").value='';$("fileTableWrap").classList.add('hidden');$("status").classList.add('hidden')}
+function resetFiles(){clearFileState();calculate()}
+function clearAll(){
+  if(!window.confirm('確定要清除已選檔案與所有手動填寫的時數嗎？')) return;
+  ["supervisionHours","daycareHours","typhoon1Min","typhoon2Min","typhoon3Min"].forEach(id => {$(id).value='0'});
+  state.requiredManual=false;
+  clearFileState();
+  periodChanged();
+}
 
 document.addEventListener('DOMContentLoaded',init);
