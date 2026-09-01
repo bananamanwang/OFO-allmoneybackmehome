@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>服務員工時 Excel 驗算</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
+  <script src="vendor/jszip.min.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -37,6 +37,7 @@
         <label>團督時數 <em>（填小時）</em><input id="supervisionHours" type="number" min="0" step="0.01" value="0"></label>
         <label>日照時數 <em>（填小時）</em><input id="daycareHours" type="number" min="0" step="0.01" value="0"></label>
       </div>
+      <div id="periodError" class="field-error hidden" role="alert"></div>
       <p id="requiredHint" class="hint"></p>
       <div id="calendarTags" class="tag-row"></div>
     </section>
@@ -52,12 +53,16 @@
       </label>
       <div class="privacy-note">檔案只在目前瀏覽器中解析，不會上傳或保存。</div>
       <div id="status" class="status hidden" role="status"></div>
-      <div id="fileTableWrap" class="table-wrap hidden">
-        <table>
-          <thead><tr><th>檔案</th><th>人員</th><th>月份</th><th>總工時</th><th>總交通</th><th>請假</th><th>核對</th></tr></thead>
-          <tbody id="fileTableBody"></tbody>
-        </table>
-      </div>
+      <details id="fileTableWrap" class="file-details hidden" open>
+        <summary>查看 Excel 原始核對資料</summary>
+        <p id="leaveNote" class="subnote">請假欄為 Excel 表頭記載的整月份總數。</p>
+        <div class="table-wrap compact-table">
+          <table>
+            <thead><tr><th>檔案</th><th>人員</th><th>月份</th><th>總工時</th><th>總交通</th><th>請假（整月）</th><th>核對</th></tr></thead>
+            <tbody id="fileTableBody"></tbody>
+          </table>
+        </div>
+      </details>
     </section>
 
     <section id="resultsPanel" class="panel results-panel muted" aria-labelledby="results-title">
@@ -84,21 +89,27 @@
         <div class="metric"><span>日照時數</span><strong id="daycareResult">—</strong></div>
       </div>
 
-      <h3>週六與國定假日明細</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>日期</th><th>分類</th><th>服務</th><th>交通</th><th>合計</th><th>檢查</th></tr></thead>
-          <tbody id="specialDayBody"><tr><td colspan="6" class="empty">尚未產生資料</td></tr></tbody>
-        </table>
-      </div>
+      <div class="audit-sections">
+        <details class="result-details" open>
+          <summary><span>週六與國定假日明細</span><small>檢查單日是否超過 8 小時</small></summary>
+          <div class="table-wrap compact-table">
+            <table>
+              <thead><tr><th>日期</th><th>分類</th><th>服務</th><th>交通</th><th>合計</th><th>檢查</th></tr></thead>
+              <tbody id="specialDayBody"><tr><td colspan="6" class="empty">尚未產生資料</td></tr></tbody>
+            </table>
+          </div>
+        </details>
 
-      <h3>每週平日應上時數檢查</h3>
-      <p class="subnote">當週應上＝週一至週五的工作日 × 8 小時；遇國定假日會自動扣除。實際時數為平日服務＋交通。</p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>週次</th><th>平日服務</th><th>平日交通</th><th>平日合計</th><th>當週應上</th><th>差距／結果</th></tr></thead>
-          <tbody id="weeklyBody"><tr><td colspan="6" class="empty">尚未產生資料</td></tr></tbody>
-        </table>
+        <details class="result-details" open>
+          <summary><span>每週平日應上時數檢查</span><small>工作日 × 8 小時</small></summary>
+          <p class="subnote notice-note">實際時數＝平日服務＋交通。團督與日照沒有日期，無法分配到個別週次，因此不列入本表。</p>
+          <div class="table-wrap compact-table">
+            <table>
+              <thead><tr><th>週次</th><th>平日服務</th><th>平日交通</th><th>平日合計</th><th>當週應上</th><th>差距／結果</th></tr></thead>
+              <tbody id="weeklyBody"><tr><td colspan="6" class="empty">尚未產生資料</td></tr></tbody>
+            </table>
+          </div>
+        </details>
       </div>
 
       <details>
@@ -108,6 +119,6 @@
     </section>
   </main>
 
-  <footer><div class="wrap"><span>2026.09.01 第一版</span><span>王瑄葆製作</span></div></footer>
+  <footer><div class="wrap"><span>2026.09.01 第二版</span><span>王瑄葆製作</span></div></footer>
 </body>
 </html>
