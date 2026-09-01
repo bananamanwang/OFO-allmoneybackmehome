@@ -33,15 +33,20 @@ const fmt = value => `${Number(value).toFixed(2)} 小時`;
 const esc = value => String(value).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 
 function init() {
-  for (let y=2026;y<=2027;y++) $("year").add(new Option(`${y} 年`, y));
+  const supportedYears=Object.keys(HOLIDAYS).map(Number).sort((a,b)=>a-b);
+  const now=new Date();
+  const currentYear=supportedYears.includes(now.getFullYear())?now.getFullYear():supportedYears.at(-1);
+  const currentMonth=supportedYears.includes(now.getFullYear())?now.getMonth()+1:12;
+  supportedYears.forEach(y => $("year").add(new Option(`${y} 年`, y)));
   for (let m=1;m<=12;m++) $("month").add(new Option(`${m} 月`, m));
-  $("year").value = "2026"; $("month").value = "8";
-  $("startDate").value = "2026-08-16"; syncFourWeekEnd();
+  $("year").value=String(currentYear); $("month").value=String(currentMonth);
+  setPeriodDateLimits(supportedYears);
+  setDefaultFourWeekPeriod();
   $("mode").addEventListener("change", () => { toggleMode(); periodChanged(); });
   ["year","month"].forEach(id => $(id).addEventListener("change", periodChanged));
   $("startDate").addEventListener("change", () => { syncFourWeekEnd(); periodChanged(); });
-  $("requiredHours").addEventListener("input", () => { state.requiredManual=true; calculate(); });
-  ["supervisionHours","daycareHours","typhoon1Min","typhoon2Min","typhoon3Min"].forEach(id => $(id).addEventListener("input", calculate));
+  $("requiredHours").addEventListener("input", () => { validateNumber($("requiredHours")); state.requiredManual=true; calculate(); });
+  ["supervisionHours","daycareHours","typhoon1Min","typhoon2Min","typhoon3Min"].forEach(id => $(id).addEventListener("input", () => { validateNumber($(id)); calculate(); }));
   $("fileInput").addEventListener("change", e => loadFiles(e.target.files));
   $("resetButton").addEventListener("click", resetFiles);
   const zone = $("dropZone");
@@ -49,6 +54,34 @@ function init() {
   ["dragleave","drop"].forEach(type => zone.addEventListener(type, e => {e.preventDefault();zone.classList.remove("drag")}));
   zone.addEventListener("drop", e => loadFiles(e.dataTransfer.files));
   periodChanged();
+}
+
+function setPeriodDateLimits(supportedYears) {
+  const minDate=`${supportedYears[0]}-01-01`, maxDate=`${supportedYears.at(-1)}-12-31`;
+  const latestStart=utcDate(maxDate); latestStart.setUTCDate(latestStart.getUTCDate()-27);
+  $("startDate").min=minDate; $("startDate").max=iso(latestStart);
+  $("endDate").min=minDate; $("endDate").max=maxDate;
+}
+
+function setDefaultFourWeekPeriod() {
+  const anchor=utcDate('2026-07-19');
+  const now=new Date(), today=new Date(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()));
+  const cycle=Math.floor((today-anchor)/(28*24*60*60*1000));
+  const start=new Date(anchor); start.setUTCDate(start.getUTCDate()+cycle*28);
+  const min=utcDate($("startDate").min), max=utcDate($("startDate").max);
+  if(start<min) $("startDate").value=iso(min);
+  else if(start>max) $("startDate").value=iso(max);
+  else $("startDate").value=iso(start);
+  syncFourWeekEnd();
+}
+
+function validateNumber(input) {
+  if(input.value==='') return;
+  let value=Number(input.value);
+  if(!Number.isFinite(value)) { input.value=''; return; }
+  if(input.min!=='' && value<Number(input.min)) value=Number(input.min);
+  if(input.max!=='' && value>Number(input.max)) value=Number(input.max);
+  input.value=String(value);
 }
 
 function toggleMode() {
@@ -228,7 +261,7 @@ function calculate() {
     $("specialDayBody").innerHTML='<tr><td colspan="6" class="empty check-bad">不同員工的資料不可合併驗算</td></tr>';
     $("weeklyBody").innerHTML='<tr><td colspan="6" class="empty check-bad">不同員工的資料不可合併驗算</td></tr>';
     renderWarnings(['選取的檔案屬於不同員工，已停止計算。請清除後，分別上傳驗算。'],true);
-    $("resultsPanel").classList.remove('muted');
+    $("resultsPanel").classList.remove('hidden','muted');
     return;
   }
   valid.filter(f=>!f.reconciled).forEach(f=>warnings.push(
@@ -278,7 +311,7 @@ function calculate() {
   }).join('') : '<tr><td colspan="6" class="empty">期間內沒有週六或國定假日</td></tr>';
   renderWeeklyCheck(p,days,merged,covered);
   renderWarnings(warnings);
-  $("resultsPanel").classList.remove('muted');
+  $("resultsPanel").classList.remove('hidden','muted');
 }
 
 function setText(id,text){$(id).textContent=text}
@@ -322,7 +355,7 @@ function renderWeeklyCheck(period,days,records,coveredMonths) {
 }
 function clearResults(){
   ['periodWork','transportTotal','overtimeTotal','requiredResult','weekdayActual','weekdayOvertime','saturdayOvertime','holidayOvertime','serviceTotal','supervisionResult','daycareResult','typhoonResult'].forEach(id=>setText(id,'—'));
-  $("shortageBadge").classList.add('hidden'); $("warnings").classList.add('hidden'); $("resultsPanel").classList.add('muted');
+  $("shortageBadge").classList.add('hidden'); $("warnings").classList.add('hidden'); $("resultsPanel").classList.add('hidden');
   $("overtimeCard").classList.remove('overtime-warning'); $("overtimeWarning").classList.add('hidden');
   $("specialDayBody").innerHTML='<tr><td colspan="6" class="empty">尚未產生資料</td></tr>';
   $("weeklyBody").innerHTML='<tr><td colspan="6" class="empty">尚未產生資料</td></tr>';
