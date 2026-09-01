@@ -253,8 +253,8 @@ function calculate() {
   const special=[];
   for(const d of days) {
     const date=iso(d), r=merged.get(date) || {work:0,transport:0};
-    if(d.getUTCDay()===6) { saturdayMin+=r.work+r.transport; special.push({date,type:holidayMap.get(date)?`週六／${holidayMap.get(date)}`:'週六',...r}); }
-    else if(holidayMap.has(date)) { holidayMin+=r.work+r.transport; special.push({date,type:holidayMap.get(date),...r}); }
+    if(d.getUTCDay()===6) { saturdayMin+=r.work+r.transport; special.push({date,type:holidayMap.get(date)?`週六／${holidayMap.get(date)}`:'週六',isHoliday:holidayMap.has(date),...r}); }
+    else if(holidayMap.has(date)) { holidayMin+=r.work+r.transport; special.push({date,type:holidayMap.get(date),isHoliday:true,...r}); }
   }
   const service=hours(serviceMin), transport=hours(transportMin), saturday=hours(saturdayMin), holiday=hours(holidayMin), typhoon=hours(typhoonMin);
   const periodWork=service+supervision+daycare+typhoon;
@@ -274,7 +274,7 @@ function calculate() {
     const total=hours(r.work+r.transport), over=total>8;
     const excess=Math.max(total-8,0);
     if(over) warnings.push(`${r.date} 的工時加交通為 ${total.toFixed(2)} 小時，超過 ${excess.toFixed(2)} 小時。`);
-    return `<tr><td>${r.date}</td><td>${esc(r.type)}</td><td>${fmt(hours(r.work))}</td><td>${fmt(hours(r.transport))}</td><td><strong>${fmt(total)}</strong></td><td class="${over?'check-bad':'check-ok'}">${over?`超過 ${excess.toFixed(2)} 小時`:'未超過 8 小時'}</td></tr>`;
+    return `<tr class="${r.isHoliday?'holiday-detail-row':''}"><td>${r.date}</td><td class="${r.isHoliday?'holiday-detail-label':''}">${esc(r.type)}</td><td>${fmt(hours(r.work))}</td><td>${fmt(hours(r.transport))}</td><td><strong>${fmt(total)}</strong></td><td class="${over?'check-bad':'check-ok'}">${over?`超過 ${excess.toFixed(2)} 小時`:'未超過 8 小時'}</td></tr>`;
   }).join('') : '<tr><td colspan="6" class="empty">期間內沒有週六或國定假日</td></tr>';
   renderWeeklyCheck(p,days,merged,covered);
   renderWarnings(warnings);
