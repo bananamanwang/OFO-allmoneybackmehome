@@ -248,7 +248,7 @@ function calculate() {
   const supervision=Math.max(0,+($("supervisionHours").value || 0));
   const daycare=Math.max(0,+($("daycareHours").value || 0));
   const required=Math.max(0,+($("requiredHours").value || 0));
-  const typhoonMin=[1,2,3].reduce((sum,i)=>sum+Math.max(0,+($("typhoon${i}Min").value || 0)),0);
+  const typhoonMin=[1,2,3].reduce((sum,i)=>sum+Math.max(0,+($(`typhoon${i}Min`).value || 0)),0);
   let saturdayMin=0, holidayMin=0;
   const special=[];
   for(const d of days) {
