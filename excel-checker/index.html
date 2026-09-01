@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>財團法人老五老基金會-工時計算(全自動版)</title>
-  <link rel="stylesheet" href="style.css?v=20260901-3">
+  <link rel="stylesheet" href="style.css?v=20260901-4">
   <script src="assets/jszip.min.js?v=3.10.1" defer></script>
-  <script src="app.js?v=20260901-4" defer></script>
+  <script src="app.js?v=20260901-5" defer></script>
 </head>
 <body>
   <header class="hero">
     <div class="wrap">
-      <div class="hero-meta"><span>製作日期：2026.09.01｜第四版</span><span>製作人：王瑄葆</span></div>
+      <div class="hero-meta"><span>製作日期：2026.09.01｜第五版</span><span>製作人：王瑄葆</span></div>
       <p class="eyebrow">瀏覽器本機驗算工具</p>
       <h1>財團法人老五老基金會-工時計算(全自動版)</h1>
       <p>選擇整月份或四週工時週期，填入團督與日照時數，再放入服務紀錄總表即可自動分類、計算與核對。</p>
@@ -40,7 +40,26 @@
       </div>
       <div id="periodError" class="field-error hidden" role="alert"></div>
       <p id="requiredHint" class="hint"></p>
-      <div id="calendarTags" class="tag-row"></div>
+      <div class="calendar-groups">
+        <div class="calendar-group">
+          <h3>週六日期</h3>
+          <div id="saturdayTags" class="tag-row"></div>
+        </div>
+        <div class="calendar-group holiday-group">
+          <h3>國定假日與補假</h3>
+          <p>獨立依官方辦公日曆呈現；若與週六重疊，工時只列入週六加班一次。</p>
+          <div id="holidayTags" class="tag-row"></div>
+        </div>
+      </div>
+
+      <div class="typhoon-section">
+        <div><h3>颱風假補貼</h3><p>沿用舊版規則，請填分鐘；會加入期間總工時，但不列入總加班。</p></div>
+        <div class="form-grid three typhoon-grid">
+          <label>颱風假 1 <em>（填分鐘）</em><input id="typhoon1Min" type="number" min="0" max="1440" step="1" value="0"></label>
+          <label>颱風假 2 <em>（填分鐘）</em><input id="typhoon2Min" type="number" min="0" max="1440" step="1" value="0"></label>
+          <label>颱風假 3 <em>（填分鐘）</em><input id="typhoon3Min" type="number" min="0" max="1440" step="1" value="0"></label>
+        </div>
+      </div>
     </section>
 
     <section class="panel" aria-labelledby="upload-title">
@@ -88,6 +107,7 @@
         <div class="metric"><span>服務工時</span><strong id="serviceTotal">—</strong></div>
         <div class="metric"><span>團督時數</span><strong id="supervisionResult">—</strong></div>
         <div class="metric"><span>日照時數</span><strong id="daycareResult">—</strong></div>
+        <div class="metric"><span>颱風假時數</span><strong id="typhoonResult">—</strong></div>
       </div>
 
       <div class="audit-sections">
@@ -115,7 +135,7 @@
 
       <details>
         <summary>查看計算方式</summary>
-        <p>平日實際工時＝服務＋交通＋團督＋日照－週六－國定假日；平日加班＝平日實際工時－應上工時；總加班＝平日加班正數＋週六加班＋國定假日加班。期間總工時不含交通。</p>
+        <p>平日實際工時＝服務＋交通＋團督＋日照－週六－國定假日；平日加班＝平日實際工時－應上工時；總加班＝平日加班正數＋週六加班＋國定假日加班。期間總工時不含交通，但會加入颱風假補貼時數；颱風假不列入總加班。</p>
       </details>
     </section>
   </main>
