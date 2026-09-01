@@ -217,19 +217,53 @@ function calculate() {
   $("shortageBadge").classList.toggle('hidden',weekdayOvertime>=0);
   $("specialDayBody").innerHTML=special.length ? special.map(r=>{
     const total=hours(r.work+r.transport), over=total>8;
-    if(over) warnings.push(`${r.date} 的工時加交通為 ${total.toFixed(2)} 小時，超過 8 小時。`);
-    return `<tr><td>${r.date}</td><td>${esc(r.type)}</td><td>${fmt(hours(r.work))}</td><td>${fmt(hours(r.transport))}</td><td><strong>${fmt(total)}</strong></td><td class="${over?'check-bad':'check-ok'}">${over?'超過 8 小時':'正常'}</td></tr>`;
+    const excess=Math.max(total-8,0);
+    if(over) warnings.push(`${r.date} 的工時加交通為 ${total.toFixed(2)} 小時，超過 ${excess.toFixed(2)} 小時。`);
+    return `<tr><td>${r.date}</td><td>${esc(r.type)}</td><td>${fmt(hours(r.work))}</td><td>${fmt(hours(r.transport))}</td><td><strong>${fmt(total)}</strong></td><td class="${over?'check-bad':'check-ok'}">${over?`超過 ${excess.toFixed(2)} 小時`:'未超過 8 小時'}</td></tr>`;
   }).join('') : '<tr><td colspan="6" class="empty">期間內沒有週六或國定假日</td></tr>';
+  renderWeeklyCheck(p,days,merged);
   $("warnings").innerHTML=[...new Set(warnings)].map(w=>`<div>⚠ ${esc(w)}</div>`).join('');
   $("warnings").classList.toggle('hidden',!warnings.length);
   $("resultsPanel").classList.remove('muted');
 }
 
 function setText(id,text){$(id).textContent=text}
+function renderWeeklyCheck(period,days,records) {
+  const weekKeys=new Map();
+  for(const day of days) {
+    const monday=new Date(day);
+    const weekday=monday.getUTCDay() || 7;
+    monday.setUTCDate(monday.getUTCDate()-weekday+1);
+    weekKeys.set(iso(monday),monday);
+  }
+  const rows=[...weekKeys.values()].map(monday => {
+    const friday=new Date(monday); friday.setUTCDate(friday.getUTCDate()+4);
+    const weekEnd=new Date(monday); weekEnd.setUTCDate(weekEnd.getUTCDate()+6);
+    const complete=monday>=period.start && friday<=period.end;
+    let workMin=0,transportMin=0,workdays=0;
+    for(let offset=0;offset<5;offset++) {
+      const day=new Date(monday); day.setUTCDate(day.getUTCDate()+offset);
+      if(!holidayMap.has(iso(day))) workdays++;
+      if(day<period.start || day>period.end || holidayMap.has(iso(day))) continue;
+      const record=records.get(iso(day));
+      workMin+=record?.work || 0;
+      transportMin+=record?.transport || 0;
+    }
+    const target=workdays*8,total=hours(workMin+transportMin),diff=total-target;
+    let result,cls;
+    if(!complete) {result='非完整週，僅供參考';cls='check-neutral';}
+    else if(diff>0) {result=`已達，超過 ${diff.toFixed(2)} 小時`;cls='check-ok';}
+    else if(diff===0) {result='剛好達應上時數';cls='check-ok';}
+    else {result=`未達，少 ${Math.abs(diff).toFixed(2)} 小時`;cls='check-bad';}
+    return `<tr><td>${iso(monday)}～${iso(weekEnd)}</td><td>${fmt(hours(workMin))}</td><td>${fmt(hours(transportMin))}</td><td><strong>${fmt(total)}</strong></td><td>${workdays} 天 × 8＝${fmt(target)}</td><td class="${cls}">${result}</td></tr>`;
+  });
+  $("weeklyBody").innerHTML=rows.length?rows.join(''):'<tr><td colspan="6" class="empty">所選期間沒有可檢查的週次</td></tr>';
+}
 function clearResults(){
   ['periodWork','transportTotal','overtimeTotal','requiredResult','weekdayActual','weekdayOvertime','saturdayOvertime','holidayOvertime','serviceTotal','supervisionResult','daycareResult'].forEach(id=>setText(id,'—'));
   $("shortageBadge").classList.add('hidden'); $("warnings").classList.add('hidden'); $("resultsPanel").classList.add('muted');
   $("specialDayBody").innerHTML='<tr><td colspan="6" class="empty">尚未產生資料</td></tr>';
+  $("weeklyBody").innerHTML='<tr><td colspan="6" class="empty">尚未產生資料</td></tr>';
 }
 function resetFiles(){state.files=[];$("fileInput").value='';$("fileTableWrap").classList.add('hidden');$("status").classList.add('hidden');calculate()}
 
