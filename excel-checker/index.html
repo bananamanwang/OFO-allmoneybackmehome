@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>財團法人老五老基金會-工時計算(全自動版)</title>
-  <link rel="stylesheet" href="style.css?v=20260901-5">
+  <link rel="stylesheet" href="style.css?v=20260901-6">
   <script src="assets/jszip.min.js?v=3.10.1" defer></script>
-  <script src="app.js?v=20260901-8" defer></script>
+  <script src="app.js?v=20260901-9" defer></script>
 </head>
 <body>
   <header class="hero">
     <div class="wrap">
-      <div class="hero-meta"><span>製作日期：2026.09.01｜第六版</span><span>製作人：王瑄葆</span></div>
+      <div class="hero-meta"><span>製作日期：2026.09.01｜第七版</span><span>製作人：王瑄葆</span></div>
       <p class="eyebrow">瀏覽器本機驗算工具</p>
       <h1>財團法人老五老基金會-工時計算(全自動版)</h1>
       <p>選擇整月份或四週工時週期，填入團督與日照時數，再放入服務紀錄總表即可自動分類、計算與核對。</p>
@@ -32,7 +32,7 @@
         </label>
         <label class="month-field">計算年份<select id="year"></select></label>
         <label class="month-field">計算月份<select id="month"></select></label>
-        <label class="range-field hidden">週期第一天<input id="startDate" type="date"></label>
+        <label class="range-field hidden">四週週期（固定 28 天）<select id="startDate"></select></label>
         <label class="range-field hidden">週期結束日（自動）<input id="endDate" type="date" readonly aria-readonly="true"></label>
         <label>應上工時（小時）<input id="requiredHours" type="number" min="0" step="0.01"></label>
         <label>團督時數 <em>（填小時）</em><input id="supervisionHours" type="number" min="0" step="0.01" value="0"></label>
@@ -88,7 +88,10 @@
     <section id="resultsPanel" class="panel results-panel hidden" aria-labelledby="results-title">
       <div class="section-heading between">
         <div class="heading-with-number"><span>3</span><div><h2 id="results-title">驗算結果</h2><p id="periodLabel">尚未放入檔案</p></div></div>
-        <button id="resetButton" class="secondary" type="button">清除檔案</button>
+        <div class="result-actions">
+          <button id="resetButton" class="secondary" type="button">清除檔案</button>
+          <button id="clearAllButton" class="secondary danger-secondary" type="button">清除全部</button>
+        </div>
       </div>
       <div id="warnings" class="warnings hidden"></div>
 
