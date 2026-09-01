@@ -3,16 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>服務員工時 Excel 驗算</title>
-  <link rel="stylesheet" href="style.css?v=20260901-2">
+  <title>財團法人老五老基金會-工時計算(全自動版)</title>
+  <link rel="stylesheet" href="style.css?v=20260901-3">
   <script src="assets/jszip.min.js?v=3.10.1" defer></script>
-  <script src="app.js?v=20260901-3" defer></script>
+  <script src="app.js?v=20260901-4" defer></script>
 </head>
 <body>
   <header class="hero">
     <div class="wrap">
+      <div class="hero-meta"><span>製作日期：2026.09.01｜第四版</span><span>製作人：王瑄葆</span></div>
       <p class="eyebrow">瀏覽器本機驗算工具</p>
-      <h1>服務員工時 Excel 驗算</h1>
+      <h1>財團法人老五老基金會-工時計算(全自動版)</h1>
       <p>選擇整月份或四週工時週期，填入團督與日照時數，再放入服務紀錄總表即可自動分類、計算與核對。</p>
     </div>
   </header>
@@ -75,7 +76,7 @@
       <div class="summary-grid">
         <article class="summary-card blue"><small>期間總工時</small><strong id="periodWork">—</strong><span>不含交通</span></article>
         <article class="summary-card teal"><small>總交通時間</small><strong id="transportTotal">—</strong><span>由 Excel 自動加總</span></article>
-        <article class="summary-card purple"><small>總加班時數</small><strong id="overtimeTotal">—</strong><span>負數平日加班不列入</span></article>
+        <article id="overtimeCard" class="summary-card purple"><small>總加班時數</small><strong id="overtimeTotal">—</strong><span>負數平日加班不列入</span><b id="overtimeWarning" class="card-warning hidden">⚠ 已超過 46 小時</b></article>
       </div>
 
       <div class="detail-grid">
@@ -119,6 +120,5 @@
     </section>
   </main>
 
-  <footer><div class="wrap"><span>2026.09.01 第三版</span><span>王瑄葆製作</span></div></footer>
 </body>
 </html>
