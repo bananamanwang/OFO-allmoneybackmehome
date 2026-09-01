@@ -6,12 +6,12 @@
   <title>財團法人老五老基金會-工時計算(全自動版)</title>
   <link rel="stylesheet" href="style.css?v=20260901-5">
   <script src="assets/jszip.min.js?v=3.10.1" defer></script>
-  <script src="app.js?v=20260901-7" defer></script>
+  <script src="app.js?v=20260901-8" defer></script>
 </head>
 <body>
   <header class="hero">
     <div class="wrap">
-      <div class="hero-meta"><span>製作日期：2026.09.01｜第五版</span><span>製作人：王瑄葆</span></div>
+      <div class="hero-meta"><span>製作日期：2026.09.01｜第六版</span><span>製作人：王瑄葆</span></div>
       <p class="eyebrow">瀏覽器本機驗算工具</p>
       <h1>財團法人老五老基金會-工時計算(全自動版)</h1>
       <p>選擇整月份或四週工時週期，填入團督與日照時數，再放入服務紀錄總表即可自動分類、計算與核對。</p>
@@ -55,9 +55,9 @@
       <div class="typhoon-section">
         <div><h3>颱風假補貼</h3><p>沿用舊版規則，請填分鐘；會加入期間總工時，但不列入總加班。</p></div>
         <div class="form-grid three typhoon-grid">
-          <label>颱風假 1 <em>（填分鐘）</em><input id="typhoon1Min" type="number" min="0" max="1440" step="1" value="0"></label>
-          <label>颱風假 2 <em>（填分鐘）</em><input id="typhoon2Min" type="number" min="0" max="1440" step="1" value="0"></label>
-          <label>颱風假 3 <em>（填分鐘）</em><input id="typhoon3Min" type="number" min="0" max="1440" step="1" value="0"></label>
+          <label>颱風假 1 <em>（填分鐘，上限 480）</em><input id="typhoon1Min" type="number" min="0" max="480" step="1" value="0"></label>
+          <label>颱風假 2 <em>（填分鐘，上限 480）</em><input id="typhoon2Min" type="number" min="0" max="480" step="1" value="0"></label>
+          <label>颱風假 3 <em>（填分鐘，上限 480）</em><input id="typhoon3Min" type="number" min="0" max="480" step="1" value="0"></label>
         </div>
       </div>
     </section>
@@ -85,7 +85,7 @@
       </details>
     </section>
 
-    <section id="resultsPanel" class="panel results-panel muted" aria-labelledby="results-title">
+    <section id="resultsPanel" class="panel results-panel hidden" aria-labelledby="results-title">
       <div class="section-heading between">
         <div class="heading-with-number"><span>3</span><div><h2 id="results-title">驗算結果</h2><p id="periodLabel">尚未放入檔案</p></div></div>
         <button id="resetButton" class="secondary" type="button">清除檔案</button>
