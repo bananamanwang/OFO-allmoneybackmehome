@@ -6,14 +6,14 @@
   <title>服務員工時 Excel 驗算</title>
   <link rel="stylesheet" href="style.css?v=20260901-2">
   <script src="assets/jszip.min.js?v=3.10.1" defer></script>
-  <script src="app.js?v=20260901-2" defer></script>
+  <script src="app.js?v=20260901-3" defer></script>
 </head>
 <body>
   <header class="hero">
     <div class="wrap">
       <p class="eyebrow">瀏覽器本機驗算工具</p>
       <h1>服務員工時 Excel 驗算</h1>
-      <p>選擇月份或日期區間，填入團督與日照時數，再放入服務紀錄總表即可自動分類、計算與核對。</p>
+      <p>選擇整月份或四週工時週期，填入團督與日照時數，再放入服務紀錄總表即可自動分類、計算與核對。</p>
     </div>
   </header>
 
@@ -26,13 +26,13 @@
         <label>選取方式
           <select id="mode">
             <option value="month">整月份</option>
-            <option value="range">日期區間</option>
+            <option value="range">四週工時</option>
           </select>
         </label>
         <label class="month-field">計算年份<select id="year"></select></label>
         <label class="month-field">計算月份<select id="month"></select></label>
-        <label class="range-field hidden">開始日期<input id="startDate" type="date"></label>
-        <label class="range-field hidden">結束日期<input id="endDate" type="date"></label>
+        <label class="range-field hidden">週期第一天<input id="startDate" type="date"></label>
+        <label class="range-field hidden">週期結束日（自動）<input id="endDate" type="date" readonly aria-readonly="true"></label>
         <label>應上工時（小時）<input id="requiredHours" type="number" min="0" step="0.01"></label>
         <label>團督時數 <em>（填小時）</em><input id="supervisionHours" type="number" min="0" step="0.01" value="0"></label>
         <label>日照時數 <em>（填小時）</em><input id="daycareHours" type="number" min="0" step="0.01" value="0"></label>
@@ -44,7 +44,7 @@
 
     <section class="panel" aria-labelledby="upload-title">
       <div class="section-heading">
-        <span>2</span><div><h2 id="upload-title">放入服務紀錄總表</h2><p>日期區間跨月時可一次選取多個 .xlsx 檔。</p></div>
+        <span>2</span><div><h2 id="upload-title">放入服務紀錄總表</h2><p>四週週期跨月時可一次選取多個 .xlsx 檔。</p></div>
       </div>
       <label id="dropZone" class="drop-zone">
         <input id="fileInput" type="file" accept=".xlsx" multiple>
@@ -119,6 +119,6 @@
     </section>
   </main>
 
-  <footer><div class="wrap"><span>2026.09.01 第二版</span><span>王瑄葆製作</span></div></footer>
+  <footer><div class="wrap"><span>2026.09.01 第三版</span><span>王瑄葆製作</span></div></footer>
 </body>
 </html>
