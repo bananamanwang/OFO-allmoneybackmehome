@@ -72,13 +72,35 @@ function daysBetween(start,end) {
   return result;
 }
 
+function periodValidationError(period) {
+  if (Number.isNaN(period.start.getTime()) || Number.isNaN(period.end.getTime())) return '請完整選擇開始日期與結束日期。';
+  if (period.start>period.end) return '結束日期不得早於開始日期，請重新選擇。';
+  return '';
+}
+
 function periodChanged() {
   const p=getPeriod();
+  const error=periodValidationError(p);
+  $("periodError").textContent=error;
+  $("periodError").classList.toggle('hidden',!error);
+  $("startDate").toggleAttribute('aria-invalid',!!error);
+  $("endDate").toggleAttribute('aria-invalid',!!error);
+  if(error) {
+    state.requiredManual=false;
+    $("requiredHours").value='';
+    $("requiredHint").textContent='暫停計算，請先修正日期區間。';
+    $("calendarTags").innerHTML='';
+    calculate();
+    return;
+  }
   const days=daysBetween(p.start,p.end);
   const workdays=days.filter(d => d.getUTCDay()>=1 && d.getUTCDay()<=5 && !holidayMap.has(iso(d))).length;
   state.requiredManual=false;
   $("requiredHours").value=(workdays*8).toFixed(2).replace(/\.00$/,'');
   $("requiredHint").textContent=`自動計算：${workdays} 個工作日 × 8 小時＝${workdays*8} 小時（仍可手動修改）`;
+  $("leaveNote").textContent=$("mode").value==='range'
+    ? '目前為日期區間模式；請假欄仍是各 Excel 表頭的整月份總數，不會依日期區間切割。'
+    : '請假欄為 Excel 表頭記載的整月份總數。';
   renderCalendar(days);
   calculate();
 }
@@ -94,7 +116,7 @@ function renderCalendar(days) {
 async function loadFiles(fileList) {
   const files=[...fileList].filter(f => f.name.toLowerCase().endsWith('.xlsx'));
   if (!files.length) return showStatus('請選取 .xlsx 格式的服務紀錄總表。',true);
-  if (typeof JSZip === 'undefined') return showStatus('Excel 解析元件載入失敗，請確認網路後重新整理。',true);
+  if (typeof JSZip === 'undefined') return showStatus('Excel 解析元件載入失敗，請重新整理頁面。',true);
   showStatus(`正在解析 ${files.length} 個檔案…`);
   const parsed=[];
   for (const file of files) {
@@ -167,7 +189,7 @@ function renderFiles() {
   const body=$("fileTableBody");
   body.innerHTML=state.files.map(f => f.error
     ? `<tr><td>${esc(f.name)}</td><td colspan="5" class="check-bad">${esc(f.error)}</td><td class="check-bad">失敗</td></tr>`
-    : `<tr><td title="${esc(f.name)}">${esc(shortName(f.name))}</td><td>${esc(f.employee)}<br><small>${esc(f.employeeId)}</small></td><td>${f.year}/${pad(f.month)}</td><td>${fmt(hours(f.headerWork))}</td><td>${fmt(hours(f.headerTransport))}</td><td>員工 ${f.employeeLeave} 分<br>個案 ${f.clientLeave} 分</td><td class="${f.reconciled?'check-ok':'check-bad'}">${f.reconciled?'吻合':'有差異'}</td></tr>`
+    : `<tr><td title="${esc(f.name)}">${esc(shortName(f.name))}</td><td>${esc(f.employee)}<br><small>${esc(f.employeeId)}</small></td><td>${f.year}/${pad(f.month)}</td><td>${fmt(hours(f.headerWork))}</td><td>${fmt(hours(f.headerTransport))}</td><td>員工 ${f.employeeLeave} 分<br>個案 ${f.clientLeave} 分</td><td class="${f.reconciled?'check-ok':'check-bad'}">${f.reconciled?'吻合':reconcileLabel(f)}</td></tr>`
   ).join('');
   $("fileTableWrap").classList.remove("hidden");
   const success=state.files.filter(f=>!f.error).length, failed=state.files.length-success;
@@ -175,15 +197,29 @@ function renderFiles() {
 }
 
 function shortName(name){return name.length>25?`${name.slice(0,22)}…`:name}
+function signed(value){return `${value>=0?'+':''}${value}`}
+function reconcileLabel(file){return `有差異<br><small>工時 ${signed(file.sumWork-file.headerWork)} 分<br>交通 ${signed(file.sumTransport-file.headerTransport)} 分</small>`}
 function showStatus(text,isError=false){const el=$("status");el.textContent=text;el.classList.remove("hidden");el.classList.toggle("error",isError)}
 
 function calculate() {
   const valid=state.files.filter(f=>!f.error), p=getPeriod(), days=daysBetween(p.start,p.end);
   $("periodLabel").textContent=p.label;
+  if(periodValidationError(p)) { clearResults(); return; }
   if(!valid.length || !days.length) { clearResults(); return; }
   const warnings=[];
   const people=new Set(valid.map(f=>`${f.employee}|${f.employeeId}`));
-  if(people.size>1) warnings.push('選取的檔案屬於不同員工，請分開驗算。');
+  if(people.size>1) {
+    clearResults();
+    $("periodLabel").textContent=`${p.label}｜已停止計算`;
+    $("specialDayBody").innerHTML='<tr><td colspan="6" class="empty check-bad">不同員工的資料不可合併驗算</td></tr>';
+    $("weeklyBody").innerHTML='<tr><td colspan="6" class="empty check-bad">不同員工的資料不可合併驗算</td></tr>';
+    renderWarnings(['選取的檔案屬於不同員工，已停止計算。請清除後，分別上傳驗算。'],true);
+    $("resultsPanel").classList.remove('muted');
+    return;
+  }
+  valid.filter(f=>!f.reconciled).forEach(f=>warnings.push(
+    `${f.name} 的 Excel 表頭與每日加總不一致：工時 ${signed(f.sumWork-f.headerWork)} 分鐘、交通 ${signed(f.sumTransport-f.headerTransport)} 分鐘。本次仍以每日資料計算。`
+  ));
   const covered=new Set(valid.map(f=>`${f.year}-${pad(f.month)}`));
   const needed=new Set(days.map(d=>`${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}`));
   const missing=[...needed].filter(m=>!covered.has(m));
@@ -221,14 +257,19 @@ function calculate() {
     if(over) warnings.push(`${r.date} 的工時加交通為 ${total.toFixed(2)} 小時，超過 ${excess.toFixed(2)} 小時。`);
     return `<tr><td>${r.date}</td><td>${esc(r.type)}</td><td>${fmt(hours(r.work))}</td><td>${fmt(hours(r.transport))}</td><td><strong>${fmt(total)}</strong></td><td class="${over?'check-bad':'check-ok'}">${over?`超過 ${excess.toFixed(2)} 小時`:'未超過 8 小時'}</td></tr>`;
   }).join('') : '<tr><td colspan="6" class="empty">期間內沒有週六或國定假日</td></tr>';
-  renderWeeklyCheck(p,days,merged);
-  $("warnings").innerHTML=[...new Set(warnings)].map(w=>`<div>⚠ ${esc(w)}</div>`).join('');
-  $("warnings").classList.toggle('hidden',!warnings.length);
+  renderWeeklyCheck(p,days,merged,covered);
+  renderWarnings(warnings);
   $("resultsPanel").classList.remove('muted');
 }
 
 function setText(id,text){$(id).textContent=text}
-function renderWeeklyCheck(period,days,records) {
+function renderWarnings(warnings,blocking=false) {
+  const unique=[...new Set(warnings)];
+  $("warnings").innerHTML=unique.map(w=>`<div>⚠ ${esc(w)}</div>`).join('');
+  $("warnings").classList.toggle('hidden',!unique.length);
+  $("warnings").classList.toggle('blocking',blocking);
+}
+function renderWeeklyCheck(period,days,records,coveredMonths) {
   const weekKeys=new Map();
   for(const day of days) {
     const monday=new Date(day);
@@ -239,11 +280,12 @@ function renderWeeklyCheck(period,days,records) {
   const rows=[...weekKeys.values()].map(monday => {
     const friday=new Date(monday); friday.setUTCDate(friday.getUTCDate()+4);
     const weekEnd=new Date(monday); weekEnd.setUTCDate(weekEnd.getUTCDate()+6);
-    const complete=monday>=period.start && friday<=period.end;
+    let complete=monday>=period.start && friday<=period.end;
     let workMin=0,transportMin=0,workdays=0;
     for(let offset=0;offset<5;offset++) {
       const day=new Date(monday); day.setUTCDate(day.getUTCDate()+offset);
       if(!holidayMap.has(iso(day))) workdays++;
+      if(!coveredMonths.has(`${day.getUTCFullYear()}-${pad(day.getUTCMonth()+1)}`)) complete=false;
       if(day<period.start || day>period.end || holidayMap.has(iso(day))) continue;
       const record=records.get(iso(day));
       workMin+=record?.work || 0;
@@ -251,11 +293,11 @@ function renderWeeklyCheck(period,days,records) {
     }
     const target=workdays*8,total=hours(workMin+transportMin),diff=total-target;
     let result,cls;
-    if(!complete) {result='非完整週，僅供參考';cls='check-neutral';}
+    if(!complete) {result='資料不足，無法驗算';cls='check-neutral';}
     else if(diff>0) {result=`已達，超過 ${diff.toFixed(2)} 小時`;cls='check-ok';}
     else if(diff===0) {result='剛好達應上時數';cls='check-ok';}
     else {result=`未達，少 ${Math.abs(diff).toFixed(2)} 小時`;cls='check-bad';}
-    return `<tr><td>${iso(monday)}～${iso(weekEnd)}</td><td>${fmt(hours(workMin))}</td><td>${fmt(hours(transportMin))}</td><td><strong>${fmt(total)}</strong></td><td>${workdays} 天 × 8＝${fmt(target)}</td><td class="${cls}">${result}</td></tr>`;
+    return `<tr><td>${iso(monday)}～${iso(weekEnd)}</td><td>${fmt(hours(workMin))}</td><td>${fmt(hours(transportMin))}</td><td><strong>${fmt(total)}</strong></td><td>${complete?`${workdays} 天 × 8＝${fmt(target)}`:'—'}</td><td class="${cls}">${result}</td></tr>`;
   });
   $("weeklyBody").innerHTML=rows.length?rows.join(''):'<tr><td colspan="6" class="empty">所選期間沒有可檢查的週次</td></tr>';
 }
