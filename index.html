@@ -405,7 +405,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.09.01第十版</span>
+        <span>2026.09.14第十一版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -432,7 +432,7 @@
         </div>
         <div class="input-group range-period-field is-hidden">
             <label for="rangeStart">週期第一天</label>
-            <input type="date" id="rangeStart" onchange="handleFourWeekStartChange()">
+            <select id="rangeStart" onchange="handleFourWeekStartChange()"></select>
         </div>
         <div class="input-group range-period-field is-hidden">
             <label for="rangeEnd">週期結束日（自動）</label>
@@ -440,12 +440,12 @@
         </div>
         <div class="input-group">
             <label for="requiredHours">應上工時（工作日 × 8小時）</label>
-            <input type="number" id="requiredHours" min="0" max="20000" step="0.1" value="0" oninput="handleRequiredHoursInput()">
+            <input type="number" id="requiredHours" min="0" max="20000" step="0.01" value="0" oninput="handleRequiredHoursInput()">
             <span id="workdaySummary" class="field-help"></span>
         </div>
         <div class="input-group">
             <label for="groupSupHours">團督時數 (小時)</label>
-            <input type="number" id="groupSupHours" placeholder="0" min="0" max="744" step="0.1" oninput="validateNumber(this); calculateHours()">
+            <input type="number" id="groupSupHours" placeholder="0" min="0" max="744" step="0.01" oninput="validateNumber(this); calculateHours()">
         </div>
         <div class="input-group">
             <label for="weekdayMin">全家寶總時數 (分鐘)</label>
@@ -457,7 +457,7 @@
         </div>
         <div class="input-group">
             <label for="daycareHours">日照時數 <span class="unit-warning">（小時）</span></label>
-            <input type="number" id="daycareHours" placeholder="0" min="0" max="744" step="0.1" oninput="validateNumber(this); calculateHours()">
+            <input type="number" id="daycareHours" placeholder="0" min="0" max="744" step="0.01" oninput="validateNumber(this); calculateHours()">
         </div>
     </div>
 
@@ -481,9 +481,9 @@
 
     <div class="section-title">4. 颱風假補貼 (單位：分鐘)</div>
     <div class="input-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
-        <div class="input-group"><label for="typ1">颱風假 1</label><input type="number" id="typ1" placeholder="工時(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()"></div>
-        <div class="input-group"><label for="typ2">颱風假 2</label><input type="number" id="typ2" placeholder="工時(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()"></div>
-        <div class="input-group"><label for="typ3">颱風假 3</label><input type="number" id="typ3" placeholder="工時(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()"></div>
+        <div class="input-group"><label for="typ1">颱風假 1</label><input type="number" id="typ1" placeholder="工時(分)" min="0" max="480" step="1" oninput="validateNumber(this); calculateHours()"></div>
+        <div class="input-group"><label for="typ2">颱風假 2</label><input type="number" id="typ2" placeholder="工時(分)" min="0" max="480" step="1" oninput="validateNumber(this); calculateHours()"></div>
+        <div class="input-group"><label for="typ3">颱風假 3</label><input type="number" id="typ3" placeholder="工時(分)" min="0" max="480" step="1" oninput="validateNumber(this); calculateHours()"></div>
     </div>
 
     <!-- 計算結果面板 -->
@@ -635,14 +635,18 @@
             return `<option value="${month}"${selected}>${month} 月</option>`;
         }).join('');
 
-        const minDate = `${supportedYears[0]}-01-01`;
-        const maxDate = `${supportedYears[supportedYears.length - 1]}-12-31`;
-        rangeStart.min = minDate;
-        const latestRangeStart = new Date(`${maxDate}T00:00:00Z`);
-        latestRangeStart.setUTCDate(latestRangeStart.getUTCDate() - 27);
-        rangeStart.max = latestRangeStart.toISOString().slice(0, 10);
-        rangeEnd.min = minDate;
-        rangeEnd.max = maxDate;
+        const min = new Date(Date.UTC(supportedYears[0],0,1));
+        const max = new Date(Date.UTC(supportedYears.at(-1),11,31));
+        const anchor = new Date('2026-07-19T00:00:00Z');
+        const span = 28 * 86400000;
+        const first = new Date(+anchor + Math.ceil((min-anchor)/span)*span);
+        const options = [];
+        for(let date=+first;date+27*86400000<=max;date+=span) {
+            const value=new Date(date).toISOString().slice(0,10);
+            const end=new Date(date+27*86400000).toISOString().slice(0,10);
+            options.push('<option value="'+value+'">'+value+' ～ '+end+'</option>');
+        }
+        rangeStart.innerHTML=options.join('');
         setDefaultFourWeekPeriod();
     }
 
@@ -682,7 +686,10 @@
         const cycleIndex = Math.floor((today - anchor) / (28 * 24 * 60 * 60 * 1000));
         const start = new Date(anchor);
         start.setUTCDate(start.getUTCDate() + cycleIndex * 28);
-        document.getElementById('rangeStart').value = start.toISOString().slice(0, 10);
+        const selector=document.getElementById('rangeStart');
+        const options=[...selector.options];
+        const value=start.toISOString().slice(0,10);
+        selector.value=options.find(option=>option.value===value)?.value || (value<options[0].value?options[0].value:options.at(-1).value);
         syncFourWeekEnd();
     }
 
@@ -758,8 +765,8 @@
         if (!period.start || !period.end) return '請選擇四週週期的第一天。';
 
         const startInput = document.getElementById('rangeStart');
-        if (period.start < startInput.min || period.start > startInput.max) {
-            return `四週週期第一天目前可選 ${startInput.min} 至 ${startInput.max}。`;
+        if (![...startInput.options].some(option=>option.value===period.start)) {
+            return '請選擇有效的四週週期。';
         }
         return '';
     }
@@ -895,7 +902,10 @@
     function getVal(id) {
         const element = document.getElementById(id);
         const value = element ? parseFloat(element.value) : 0;
-        return Number.isFinite(value) ? Math.max(0, value) : 0;
+        if (!element || !Number.isFinite(value)) return 0;
+        const bounded=Math.min(Math.max(0,value),element.max===''?Infinity:Number(element.max));
+        const decimals=element.step==='1'?0:2;
+        return Number(bounded.toFixed(decimals));
     }
 
     function getCategoryDailyTotals(category) {
@@ -962,7 +972,7 @@
         const transportHours = transportMin / 60;
         const periodWorkHours = grandTotalHours - transportHours;
         const weekdayOvertime = grandTotalHours - saturdayHours - holidayHoursOnly - typhoonHoursOnly - requiredHours;
-        const totalOvertime = Math.max(weekdayOvertime, 0) + saturdayHours + holidayHoursOnly;
+        const totalOvertime = Number((Math.max(weekdayOvertime, 0) + saturdayHours + holidayHoursOnly).toFixed(2));
         const finalWeekdayTotal = grandTotalHours - saturdayHours - holidayHoursOnly - typhoonHoursOnly;
 
         document.getElementById('grandTotal').innerText = periodWorkHours.toFixed(2) + " 小時";
