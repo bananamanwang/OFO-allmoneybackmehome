@@ -306,7 +306,8 @@ function calculate() {
   const valid=state.files.filter(f=>!f.error), p=getPeriod(), days=daysBetween(p.start,p.end);
   $("periodLabel").textContent=p.label;
   if(periodValidationError(p)) { clearResults(); return; }
-  if(!valid.length || !days.length) { clearResults(); return; }
+  if(!state.files.length || !days.length) { clearResults(); return; }
+  if(state.files.some(f=>f.error)) { stopCalculation(p,[], "有 Excel 解析失敗，已停止計算。請檢查上方檔案核對資料。"); return; }
   const warnings=[];
   const people=new Set(valid.map(f=>`${f.employee}|${f.employeeId}`));
   if(people.size>1) {
@@ -321,12 +322,16 @@ function calculate() {
   valid.filter(f=>!f.reconciled).forEach(f=>warnings.push(
     `${f.name} 的 Excel 表頭與每日加總不一致：工時 ${signed(f.sumWork-f.headerWork)} 分鐘、交通 ${signed(f.sumTransport-f.headerTransport)} 分鐘。本次仍以每日資料計算。`
   ));
+  const monthKeys=valid.map(f=>f.year+"-"+pad(f.month));
+  if(new Set(monthKeys).size!==monthKeys.length) {
+    stopCalculation(p,[],"同一月份重複選取，已停止計算。每個月份請只保留一份 Excel 總表。"); return;
+  }
   const covered=new Set(valid.map(f=>`${f.year}-${pad(f.month)}`));
   const needed=new Set(days.map(d=>`${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}`));
   const missing=[...needed].filter(m=>!covered.has(m));
   const merged=new Map();
   for(const f of valid) for(const r of f.records) {
-    if(merged.has(r.date)) warnings.push(`日期 ${r.date} 重複出現，僅採用第一筆。`);
+    if(merged.has(r.date)) { stopCalculation(p,[],`日期 ${r.date} 重複出現，已停止計算。請先確認檔案內容。`); return; }
     else merged.set(r.date,r);
   }
   const inRange=[...merged.values()].filter(r=>utcDate(r.date)>=p.start && utcDate(r.date)<=p.end);
