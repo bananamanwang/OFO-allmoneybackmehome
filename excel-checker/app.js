@@ -195,8 +195,8 @@ function periodChanged() {
   $("requiredHours").value=(workdays*8).toFixed(2).replace(/\.00$/,'');
   $("requiredHint").textContent=`自動計算：${workdays} 個工作日 × 8 小時＝${workdays*8} 小時（仍可手動修改）`;
   $("leaveNote").textContent=$("mode").value==='range'
-    ? '目前為四週工時模式；請假欄仍是各 Excel 表頭的整月份總數，不會依四週期間切割。'
-    : '請假欄為 Excel 表頭記載的整月份總數。';
+    ? '請假欄依各 Excel 報表表頭總數呈現，不另依所選期間切割。'
+    : '請假欄為各 Excel 報表表頭記載的期間總數。';
   renderCalendar(days);
   calculate();
 }
@@ -258,11 +258,19 @@ async function parseWorkbook(file) {
     else value=v?.textContent || '';
     if(value) cells.set(ref,value);
   }
+  return parseCells(cells,file.name);
+}
+
+function parseCells(cells,fileName) {
   const values=[...cells.values()];
   const metaText=values.join('\n');
-  const ym=metaText.match(/班表年月\s*:\s*(\d{4})(\d{2})/);
+  const ym=metaText.match(/班表年月\s*[:：]\s*(\d{4})(\d{2})(\d{2})?(?!\d)/);
   if(!ym) throw new Error('找不到「班表年月」');
   const year=+ym[1], month=+ym[2];
+  if(month<1 || month>12) throw new Error('班表月份無效');
+  const reportStart=new Date(Date.UTC(year,month-1,ym[3]?+ym[3]:1));
+  if(reportStart.getUTCMonth()!==month-1) throw new Error('班表起始日期無效');
+  const reportEnd=ym[3]?new Date(+reportStart+27*86400000):new Date(Date.UTC(year,month,0));
   const employee=metaText.match(/員工姓名\s*:\s*(.*?)\s+員工編號\s*:/)?.[1]?.trim() || '未辨識';
   const employeeId=metaText.match(/員工編號\s*:\s*([^\s]+)/)?.[1] || '—';
   const headerWork=+(metaText.match(/總工時\s*:\s*(\d+)分鐘/)?.[1] || 0);
@@ -277,12 +285,17 @@ async function parseWorkbook(file) {
     const col=pos[1], row=+pos[2];
     const work=+(cells.get(`${col}${row+1}`)?.match(/工時(\d+)分鐘/)?.[1] || 0);
     const transport=+(cells.get(`${col}${row+2}`)?.match(/交通(\d+)分鐘/)?.[1] || 0);
-    records.push({date:`${year}-${pad(+dm[1])}-${pad(+dm[2])}`,work,transport});
+    let recordYear=year;
+    if(ym[3] && +dm[1]<month) recordYear++;
+    const date=iso(new Date(Date.UTC(recordYear,+dm[1]-1,+dm[2])));
+    if(date!==recordYear+'-'+pad(+dm[1])+'-'+pad(+dm[2])) throw new Error('每日日期無效：'+value);
+    if(utcDate(date)<reportStart || utcDate(date)>reportEnd) throw new Error('每日日期超出報表期間：'+date);
+    records.push({date,work,transport});
   }
   if(!records.length) throw new Error('找不到每日工時資料');
   records.sort((a,b)=>a.date.localeCompare(b.date));
   const sumWork=records.reduce((n,r)=>n+r.work,0), sumTransport=records.reduce((n,r)=>n+r.transport,0);
-  return {name:file.name,year,month,employee,employeeId,headerWork,headerTransport,employeeLeave,clientLeave,records,sumWork,sumTransport,
+  return {name:fileName,year,month,reportStart:iso(reportStart),reportEnd:iso(reportEnd),employee,employeeId,headerWork,headerTransport,employeeLeave,clientLeave,records,sumWork,sumTransport,
     reconciled:headerWork===sumWork && headerTransport===sumTransport};
 }
 
@@ -290,7 +303,7 @@ function renderFiles() {
   const body=$("fileTableBody");
   body.innerHTML=state.files.map(f => f.error
     ? `<tr><td>${esc(f.name)}</td><td colspan="5" class="check-bad">${esc(f.error)}</td><td class="check-bad">失敗</td></tr>`
-    : `<tr><td title="${esc(f.name)}">${esc(shortName(f.name))}</td><td>${esc(f.employee)}<br><small>${esc(f.employeeId)}</small></td><td>${f.year}/${pad(f.month)}</td><td>${fmt(hours(f.headerWork))}</td><td>${fmt(hours(f.headerTransport))}</td><td>員工 ${f.employeeLeave} 分<br>個案 ${f.clientLeave} 分</td><td class="${f.reconciled?'check-ok':'check-bad'}">${f.reconciled?'吻合':reconcileLabel(f)}</td></tr>`
+    : `<tr><td title="${esc(f.name)}">${esc(shortName(f.name))}</td><td>${esc(f.employee)}<br><small>${esc(f.employeeId)}</small></td><td>${esc(f.reportStart)} ～ ${esc(f.reportEnd)}</td><td>${fmt(hours(f.headerWork))}</td><td>${fmt(hours(f.headerTransport))}</td><td>員工 ${f.employeeLeave} 分<br>個案 ${f.clientLeave} 分</td><td class="${f.reconciled?'check-ok':'check-bad'}">${f.reconciled?'吻合':reconcileLabel(f)}</td></tr>`
   ).join('');
   $("fileTableWrap").classList.remove("hidden");
   const success=state.files.filter(f=>!f.error).length, failed=state.files.length-success;
@@ -322,21 +335,15 @@ function calculate() {
   valid.filter(f=>!f.reconciled).forEach(f=>warnings.push(
     `${f.name} 的 Excel 表頭與每日加總不一致：工時 ${signed(f.sumWork-f.headerWork)} 分鐘、交通 ${signed(f.sumTransport-f.headerTransport)} 分鐘。本次仍以每日資料計算。`
   ));
-  const monthKeys=valid.map(f=>f.year+"-"+pad(f.month));
-  if(new Set(monthKeys).size!==monthKeys.length) {
-    stopCalculation(p,[],"同一月份重複選取，已停止計算。每個月份請只保留一份 Excel 總表。"); return;
-  }
-  const covered=new Set(valid.map(f=>`${f.year}-${pad(f.month)}`));
-  const needed=new Set(days.map(d=>`${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}`));
-  const missing=[...needed].filter(m=>!covered.has(m));
   const merged=new Map();
   for(const f of valid) for(const r of f.records) {
     if(merged.has(r.date)) { stopCalculation(p,[],`日期 ${r.date} 重複出現，已停止計算。請先確認檔案內容。`); return; }
     else merged.set(r.date,r);
   }
   const inRange=[...merged.values()].filter(r=>utcDate(r.date)>=p.start && utcDate(r.date)<=p.end);
+  const missing=days.map(iso).filter(date=>!merged.has(date));
   if(missing.length) {
-    stopCalculation(p,warnings,`缺少 ${missing.join('、')} 的 Excel 檔，已停止計算。請補上完整月份檔案後再驗算。`);
+    stopCalculation(p,warnings,`所選期間缺少 ${missing.length} 天的每日資料（${missing.slice(0,5).join('、')}${missing.length>5?'…':''}），已停止計算。請匯入涵蓋所選期間的四週或月份報表。`);
     return;
   }
   if(!inRange.length) {
@@ -374,7 +381,7 @@ function calculate() {
     if(over) warnings.push(`${r.date} 的工時加交通為 ${total.toFixed(2)} 小時，超過 ${excess.toFixed(2)} 小時。`);
     return `<tr class="${r.isHoliday?'holiday-detail-row':''}"><td>${r.date}</td><td class="${r.isHoliday?'holiday-detail-label':''}">${esc(r.type)}</td><td>${fmt(hours(r.work))}</td><td>${fmt(hours(r.transport))}</td><td><strong>${fmt(total)}</strong></td><td class="${over?'check-bad':'check-ok'}">${over?`超過 ${excess.toFixed(2)} 小時`:'未超過 8 小時'}</td></tr>`;
   }).join('') : '<tr><td colspan="6" class="empty">期間內沒有週六或國定假日</td></tr>';
-  renderWeeklyCheck(p,days,merged,covered);
+  renderWeeklyCheck(p,days,merged);
   renderWarnings(warnings);
   $("resultsPanel").classList.remove('hidden','muted');
 }
@@ -395,9 +402,10 @@ function stopCalculation(period,warnings,message) {
   renderWarnings([...warnings,message],true);
   $("resultsPanel").classList.remove('hidden','muted');
 }
-function renderWeeklyCheck(period,days,records,coveredMonths) {
+function renderWeeklyCheck(period,days,records) {
   const weekKeys=new Map();
   for(const day of days) {
+    if(day.getUTCDay()===0 || day.getUTCDay()===6) continue;
     const monday=new Date(day);
     const weekday=monday.getUTCDay() || 7;
     monday.setUTCDate(monday.getUTCDate()-weekday+1);
@@ -411,7 +419,7 @@ function renderWeeklyCheck(period,days,records,coveredMonths) {
     for(let offset=0;offset<5;offset++) {
       const day=new Date(monday); day.setUTCDate(day.getUTCDate()+offset);
       if(!holidayMap.has(iso(day))) workdays++;
-      if(!coveredMonths.has(`${day.getUTCFullYear()}-${pad(day.getUTCMonth()+1)}`)) complete=false;
+      if(!records.has(iso(day))) complete=false;
       if(day<period.start || day>period.end || holidayMap.has(iso(day))) continue;
       const record=records.get(iso(day));
       workMin+=record?.work || 0;
