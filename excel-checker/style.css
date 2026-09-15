@@ -7,3 +7,18 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","
 .holiday-detail-row{background:#fff7e8}.holiday-detail-row:hover{background:#ffefd1}.holiday-detail-label{color:#b14f00;font-weight:900}
 .result-actions{display:flex;align-self:center;gap:8px}.secondary:hover{background:#f4f7f9}.secondary.danger-secondary{border-color:#d9aaaa;background:#fff7f7;color:#a12525}.secondary.danger-secondary:hover{background:#ffecec}
 @media(max-width:850px){.form-grid.four{grid-template-columns:repeat(2,1fr)}.detail-grid{grid-template-columns:repeat(2,1fr)}.metric:nth-child(2n){border-right:0}.summary-grid{grid-template-columns:1fr}}
+
+/* Overtime results hierarchy */
+.overtime-layout{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:10px}
+.prominent-metric{min-height:112px;padding:19px 21px;border-left-width:5px}
+.prominent-metric>span,.saturday-stat span{font-size:15px;font-weight:800}
+.prominent-metric>strong,.saturday-stat strong{display:block;margin-top:5px;font-size:29px;font-weight:900;line-height:1.2}
+.weekday-overtime-metric{grid-column:1/-1;background:#fff8e8;border-color:#e3a62b}
+.saturday-metric{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;background:#eef7ff;border-color:#258bd3}
+.saturday-stat{padding:2px 18px;border-left:1px solid #c9e0f0}
+.saturday-stat:first-child{padding-left:0;border-left:0}
+.holiday-overtime-metric{background:#fff5ef;border-color:#df7134}
+.typhoon-overtime-metric{background:#f7f2ff;border-color:#805bd4}
+.secondary-metrics{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:10px}
+.secondary-metrics .metric{min-height:78px;background:#f7f9fa}
+@media(max-width:850px){.secondary-metrics{grid-template-columns:repeat(2,1fr)}.saturday-metric{grid-template-columns:1fr}.saturday-stat{padding:10px 0;border-left:0;border-top:1px solid #c9e0f0}.saturday-stat:first-child{border-top:0}}
