@@ -333,9 +333,10 @@
             border-radius: 8px;
         }
 
-        .detail-item.required-detail {
-            color: #475467;
-            background-color: #f2f4f7;
+        .detail-item.saturday-detail {
+            grid-column: 1 / -1;
+            border-left: 5px solid var(--accent-color);
+            background-color: #eef7fd;
         }
 
         .detail-label {
@@ -420,7 +421,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.09.15第十二版</span>
+        <span>2026.09.15第十三版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -526,9 +527,7 @@
             <div class="detail-grid">
                 <div class="detail-item">
                     <span class="detail-label">期間平日實際工時</span>
-                    <div class="detail-value-wrap">
-                        <span class="detail-value" id="weekdayTotal">0.00 小時</span>
-                    </div>
+                    <div class="detail-value-wrap"><span class="detail-value" id="weekdayTotal">0.00 小時</span></div>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">平日加班</span>
@@ -537,41 +536,25 @@
                         <div id="weekdayShortageLabel" class="shortage-label">應上不足</div>
                     </div>
                 </div>
-                <div class="detail-item">
+                <div class="detail-item saturday-detail">
                     <span class="detail-label">週六加班</span>
-                    <div class="detail-value-wrap">
-                        <span class="detail-value" id="saturdayTotal">0.00 小時</span>
-                    </div>
+                    <div class="detail-value-wrap"><span class="detail-value" id="saturdayTotal">0.00 小時</span></div>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">週六 1～2 小時合計</span>
-                    <div class="detail-value-wrap">
-                        <span class="detail-value" id="saturdayTier1Total">0.00 小時</span>
-                    </div>
+                    <div class="detail-value-wrap"><span class="detail-value" id="saturdayTier1Total">0.00 小時</span></div>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">週六 2～8 小時合計</span>
-                    <div class="detail-value-wrap">
-                        <span class="detail-value" id="saturdayTier2Total">0.00 小時</span>
-                    </div>
+                    <div class="detail-value-wrap"><span class="detail-value" id="saturdayTier2Total">0.00 小時</span></div>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">國定假日加班</span>
-                    <div class="detail-value-wrap">
-                        <span class="detail-value" id="holidayTotal">0.00 小時</span>
-                    </div>
+                    <div class="detail-value-wrap"><span class="detail-value" id="holidayTotal">0.00 小時</span></div>
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">颱風假時數</span>
-                    <div class="detail-value-wrap">
-                        <span class="detail-value" id="typhoonTotal">0.00 小時</span>
-                    </div>
-                </div>
-                <div class="detail-item required-detail">
-                    <span class="detail-label">應上工時</span>
-                    <div class="detail-value-wrap">
-                        <span class="detail-value" id="requiredHoursDisplay">0.00 小時</span>
-                    </div>
+                    <div class="detail-value-wrap"><span class="detail-value" id="typhoonTotal">0.00 小時</span></div>
                 </div>
             </div>
         </div>
@@ -1011,7 +994,7 @@
         const finalWeekdayTotal = grandTotalHours - saturdayHours - holidayHoursOnly - typhoonHoursOnly;
 
         document.getElementById('grandTotal').innerText = periodWorkHours.toFixed(2) + " 小時";
-        document.getElementById('requiredHoursDisplay').innerText = requiredHours.toFixed(2) + " 小時";
+        
 
         const totalOtEl = document.getElementById('overtimeTotal');
         totalOtEl.innerText = totalOvertime.toFixed(2) + " 小時";
