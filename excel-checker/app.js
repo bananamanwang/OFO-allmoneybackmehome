@@ -326,7 +326,7 @@ function calculate() {
   if(people.size>1) {
     clearResults();
     $("periodLabel").textContent=`${p.label}｜已停止計算`;
-    $("specialDayBody").innerHTML='<tr><td colspan="6" class="empty check-bad">不同員工的資料不可合併驗算</td></tr>';
+    $("specialDayBody").innerHTML='<tr><td colspan="8" class="empty check-bad">不同員工的資料不可合併驗算</td></tr>';
     $("weeklyBody").innerHTML='<tr><td colspan="6" class="empty check-bad">不同員工的資料不可合併驗算</td></tr>';
     renderWarnings(['選取的檔案屬於不同員工，已停止計算。請清除後，分別上傳驗算。'],true);
     $("resultsPanel").classList.remove('hidden','muted');
@@ -356,10 +356,16 @@ function calculate() {
   const required=numberValue("requiredHours");
   const typhoonMin=[1,2,3].reduce((sum,i)=>sum+numberValue(`typhoon${i}Min`),0);
   let saturdayMin=0, holidayMin=0;
+  let saturdayTier1Min=0, saturdayTier2Min=0;
   const special=[];
   for(const d of days) {
     const date=iso(d), r=merged.get(date) || {work:0,transport:0};
-    if(d.getUTCDay()===6) { saturdayMin+=r.work+r.transport; special.push({date,type:holidayMap.get(date)?`週六／${holidayMap.get(date)}`:'週六',isHoliday:holidayMap.has(date),...r}); }
+    if(d.getUTCDay()===6) {
+      const totalMin=r.work+r.transport;
+      const tier1Min=Math.min(totalMin,120), tier2Min=Math.min(Math.max(totalMin-120,0),360);
+      saturdayMin+=totalMin; saturdayTier1Min+=tier1Min; saturdayTier2Min+=tier2Min;
+      special.push({date,type:holidayMap.get(date)?`週六／${holidayMap.get(date)}`:'週六',isSaturday:true,isHoliday:holidayMap.has(date),tier1Min,tier2Min,...r});
+    }
     else if(holidayMap.has(date)) { holidayMin+=r.work+r.transport; special.push({date,type:holidayMap.get(date),isHoliday:true,...r}); }
   }
   const service=hours(serviceMin), transport=hours(transportMin), saturday=hours(saturdayMin), holiday=hours(holidayMin), typhoon=hours(typhoonMin);
@@ -372,15 +378,17 @@ function calculate() {
   if(overtime>46) warnings.push(`總加班 ${overtime.toFixed(2)} 小時，已超過 46 小時。`);
   setText('periodWork',fmt(periodWork)); setText('transportTotal',fmt(transport)); setText('overtimeTotal',fmt(overtime));
   setText('requiredResult',fmt(required)); setText('weekdayActual',fmt(weekdayActual)); setText('weekdayOvertime',fmt(weekdayOvertime));
-  setText('saturdayOvertime',fmt(saturday)); setText('holidayOvertime',fmt(holiday)); setText('serviceTotal',fmt(service));
+  setText('saturdayOvertime',fmt(saturday)); setText('saturdayTier1',fmt(hours(saturdayTier1Min))); setText('saturdayTier2',fmt(hours(saturdayTier2Min)));
+  setText('holidayOvertime',fmt(holiday)); setText('serviceTotal',fmt(service));
   setText('supervisionResult',fmt(supervision)); setText('daycareResult',fmt(daycare)); setText('typhoonResult',fmt(typhoon));
   $("shortageBadge").classList.toggle('hidden',weekdayOvertime>=0);
   $("specialDayBody").innerHTML=special.length ? special.map(r=>{
     const total=hours(r.work+r.transport), over=total>8;
     const excess=Math.max(total-8,0);
     if(over) warnings.push(`${r.date} 的工時加交通為 ${total.toFixed(2)} 小時，超過 ${excess.toFixed(2)} 小時。`);
-    return `<tr class="${r.isHoliday?'holiday-detail-row':''}"><td>${r.date}</td><td class="${r.isHoliday?'holiday-detail-label':''}">${esc(r.type)}</td><td>${fmt(hours(r.work))}</td><td>${fmt(hours(r.transport))}</td><td><strong>${fmt(total)}</strong></td><td class="${over?'check-bad':'check-ok'}">${over?`超過 ${excess.toFixed(2)} 小時`:'未超過 8 小時'}</td></tr>`;
-  }).join('') : '<tr><td colspan="6" class="empty">期間內沒有週六或國定假日</td></tr>';
+    const tier1=r.isSaturday?fmt(hours(r.tier1Min)):'—', tier2=r.isSaturday?fmt(hours(r.tier2Min)):'—';
+    return `<tr class="${r.isHoliday?'holiday-detail-row':''}"><td>${r.date}</td><td class="${r.isHoliday?'holiday-detail-label':''}">${esc(r.type)}</td><td>${fmt(hours(r.work))}</td><td>${fmt(hours(r.transport))}</td><td><strong>${fmt(total)}</strong></td><td><strong>${tier1}</strong></td><td><strong>${tier2}</strong></td><td class="${over?'check-bad':'check-ok'}">${over?`超過 ${excess.toFixed(2)} 小時`:'未超過 8 小時'}</td></tr>`;
+  }).join('') : '<tr><td colspan="8" class="empty">期間內沒有週六或國定假日</td></tr>';
   renderWeeklyCheck(p,days,merged);
   renderWarnings(warnings);
   $("resultsPanel").classList.remove('hidden','muted');
@@ -397,7 +405,7 @@ function stopCalculation(period,warnings,message) {
   clearResults();
   $("periodLabel").textContent=`${period.label}｜已停止計算`;
   const safe=esc(message);
-  $("specialDayBody").innerHTML=`<tr><td colspan="6" class="empty check-bad">${safe}</td></tr>`;
+  $("specialDayBody").innerHTML=`<tr><td colspan="8" class="empty check-bad">${safe}</td></tr>`;
   $("weeklyBody").innerHTML=`<tr><td colspan="6" class="empty check-bad">${safe}</td></tr>`;
   renderWarnings([...warnings,message],true);
   $("resultsPanel").classList.remove('hidden','muted');
@@ -436,10 +444,10 @@ function renderWeeklyCheck(period,days,records) {
   $("weeklyBody").innerHTML=rows.length?rows.join(''):'<tr><td colspan="6" class="empty">所選期間沒有可檢查的週次</td></tr>';
 }
 function clearResults(){
-  ['periodWork','transportTotal','overtimeTotal','requiredResult','weekdayActual','weekdayOvertime','saturdayOvertime','holidayOvertime','serviceTotal','supervisionResult','daycareResult','typhoonResult'].forEach(id=>setText(id,'—'));
+  ['periodWork','transportTotal','overtimeTotal','requiredResult','weekdayActual','weekdayOvertime','saturdayOvertime','saturdayTier1','saturdayTier2','holidayOvertime','serviceTotal','supervisionResult','daycareResult','typhoonResult'].forEach(id=>setText(id,'—'));
   $("shortageBadge").classList.add('hidden'); $("warnings").classList.add('hidden'); $("resultsPanel").classList.add('hidden');
   $("overtimeCard").classList.remove('overtime-warning'); $("overtimeWarning").classList.add('hidden');
-  $("specialDayBody").innerHTML='<tr><td colspan="6" class="empty">尚未產生資料</td></tr>';
+  $("specialDayBody").innerHTML='<tr><td colspan="8" class="empty">尚未產生資料</td></tr>';
   $("weeklyBody").innerHTML='<tr><td colspan="6" class="empty">尚未產生資料</td></tr>';
 }
 function clearFileState(){state.files=[];$("fileInput").value='';$("fileTableWrap").classList.add('hidden');$("status").classList.add('hidden')}
