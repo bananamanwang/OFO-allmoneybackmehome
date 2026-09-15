@@ -14,9 +14,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","
 .prominent-metric>span,.saturday-stat span{font-size:15px;font-weight:800}
 .prominent-metric>strong,.saturday-stat strong{display:block;margin-top:5px;font-size:29px;font-weight:900;line-height:1.2}
 .weekday-overtime-metric{grid-column:1/-1;background:#fff8e8;border-color:#e3a62b}
-.saturday-metric{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;background:#eef7ff;border-color:#258bd3}
+.saturday-metric{grid-column:1/-1;display:block;background:#eef7ff;border-color:#258bd3}
 .saturday-stat{padding:2px 18px;border-left:1px solid #c9e0f0}
 .saturday-stat:first-child{padding-left:0;border-left:0}
+.saturday-total-stat{padding:0 0 14px;border-bottom:1px solid #c9e0f0}
+.saturday-tier-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding-top:14px}
 .holiday-overtime-metric{background:#fff5ef;border-color:#df7134}
 .typhoon-overtime-metric{background:#f7f2ff;border-color:#805bd4}
 .secondary-metrics{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:10px}
@@ -29,5 +31,6 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","
 .summary-card.purple{color:#5b3fa3}
 .weekday-overtime-metric>span,.weekday-overtime-metric>strong{color:#8a5a00}
 .saturday-metric .saturday-stat span,.saturday-metric .saturday-stat strong{color:#175cd3}
+.saturday-metric .saturday-over8 span,.saturday-metric .saturday-over8 strong{color:#d92d20}
 .holiday-overtime-metric>span,.holiday-overtime-metric>strong{color:#b54708}
 .typhoon-overtime-metric>span,.typhoon-overtime-metric>strong{color:#5b3fa3}
