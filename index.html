@@ -269,20 +269,20 @@
 
         .summary-card.total {
             color: #175cd3;
-            background-color: #eff8ff;
-            border-color: #b2ddff;
+            background-color: #edf7ff;
+            border-color: #258bd3;
         }
 
         .summary-card.transport {
-            color: #344054;
-            background-color: #f2f4f7;
-            border-color: #d0d5dd;
+            color: #147a67;
+            background-color: #edfaf7;
+            border-color: #20a284;
         }
 
         .summary-card.overtime {
-            color: #b54708;
-            background-color: #fffaeb;
-            border-color: #fedf89;
+            color: #5b3fa3;
+            background-color: #f5f0ff;
+            border-color: #805bd4;
         }
 
         .summary-label {
@@ -333,11 +333,38 @@
             border-radius: 8px;
         }
 
-        .detail-item.saturday-detail {
+        .detail-item.saturday-total-row {
             grid-column: 1 / -1;
-            border-left: 5px solid var(--accent-color);
+        }
+
+        .detail-item.weekday-overtime-detail {
+            border-left: 5px solid #e3a62b;
+            background-color: #fff8e8;
+        }
+
+        .detail-item.saturday-detail {
+            border-left: 5px solid #258bd3;
             background-color: #eef7fd;
         }
+
+        .detail-item.holiday-detail {
+            border-left: 5px solid #df7134;
+            background-color: #fff5ef;
+        }
+
+        .detail-item.typhoon-detail {
+            border-left: 5px solid #805bd4;
+            background-color: #f7f2ff;
+        }
+
+        .detail-item.weekday-overtime-detail .detail-label,
+        .detail-item.weekday-overtime-detail .detail-value { color: #8a5a00; }
+        .detail-item.saturday-detail .detail-label,
+        .detail-item.saturday-detail .detail-value { color: #175cd3; }
+        .detail-item.holiday-detail .detail-label,
+        .detail-item.holiday-detail .detail-value { color: #b54708; }
+        .detail-item.typhoon-detail .detail-label,
+        .detail-item.typhoon-detail .detail-value { color: #5b3fa3; }
 
         .detail-label {
             color: #475467;
@@ -421,7 +448,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.09.15第十四版</span>
+        <span>2026.09.15第十五版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -529,30 +556,30 @@
                     <span class="detail-label">期間平日實際工時</span>
                     <div class="detail-value-wrap"><span class="detail-value" id="weekdayTotal">0.00 小時</span></div>
                 </div>
-                <div class="detail-item">
+                <div class="detail-item weekday-overtime-detail">
                     <span class="detail-label">平日加班</span>
                     <div class="detail-value-wrap">
                         <span class="detail-value" id="weekdayOvertimeDisplay">0.00 小時</span>
                         <div id="weekdayShortageLabel" class="shortage-label">應上不足</div>
                     </div>
                 </div>
-                <div class="detail-item saturday-detail">
+                <div class="detail-item saturday-detail saturday-total-row">
                     <span class="detail-label">週六加班</span>
                     <div class="detail-value-wrap"><span class="detail-value" id="saturdayTotal">0.00 小時</span></div>
                 </div>
-                <div class="detail-item">
+                <div class="detail-item saturday-detail">
                     <span class="detail-label">週六 1～2 小時合計</span>
                     <div class="detail-value-wrap"><span class="detail-value" id="saturdayTier1Total">0.00 小時</span></div>
                 </div>
-                <div class="detail-item">
+                <div class="detail-item saturday-detail">
                     <span class="detail-label">週六 2～8 小時合計</span>
                     <div class="detail-value-wrap"><span class="detail-value" id="saturdayTier2Total">0.00 小時</span></div>
                 </div>
-                <div class="detail-item">
+                <div class="detail-item holiday-detail">
                     <span class="detail-label">國定假日加班</span>
                     <div class="detail-value-wrap"><span class="detail-value" id="holidayTotal">0.00 小時</span></div>
                 </div>
-                <div class="detail-item">
+                <div class="detail-item typhoon-detail">
                     <span class="detail-label">颱風假時數</span>
                     <div class="detail-value-wrap"><span class="detail-value" id="typhoonTotal">0.00 小時</span></div>
                 </div>
@@ -1000,12 +1027,12 @@
 
         const totalOtEl = document.getElementById('overtimeTotal');
         totalOtEl.innerText = totalOvertime.toFixed(2) + " 小時";
-        totalOtEl.style.color = totalOvertime > 46 ? 'var(--warning-color)' : '#d35400';
+        totalOtEl.style.color = totalOvertime > 46 ? 'var(--warning-color)' : '#5b3fa3';
 
         const weekdayOtEl = document.getElementById('weekdayOvertimeDisplay');
         const weekdayShortageLabel = document.getElementById('weekdayShortageLabel');
         weekdayOtEl.innerText = hasData ? weekdayOvertime.toFixed(2) + " 小時" : "尚未填寫";
-        weekdayOtEl.style.color = hasData && weekdayOvertime < 0 ? 'var(--warning-color)' : 'var(--primary-color)';
+        weekdayOtEl.style.color = hasData && weekdayOvertime < 0 ? 'var(--warning-color)' : '#8a5a00';
         weekdayShortageLabel.style.display = hasData && weekdayOvertime < 0 ? 'inline-block' : 'none';
 
         document.getElementById('weekdayTotal').innerText = finalWeekdayTotal.toFixed(2) + " 小時";
