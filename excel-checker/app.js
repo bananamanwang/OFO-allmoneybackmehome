@@ -379,7 +379,7 @@ function calculate() {
   setText('periodWork',fmt(periodWork)); setText('transportTotal',fmt(transport)); setText('overtimeTotal',fmt(overtime));
   setText('requiredResult',fmt(required)); setText('weekdayActual',fmt(weekdayActual)); setText('weekdayOvertime',fmt(weekdayOvertime));
   setText('saturdayOvertime',fmt(saturday)); setText('saturdayTier1',fmt(hours(saturdayTier1Min))); setText('saturdayTier2',fmt(hours(saturdayTier2Min)));
-  setText('holidayOvertime',fmt(holiday)); setText('serviceTotal',fmt(service));
+  setText('holidayOvertime',fmt(holiday));
   setText('supervisionResult',fmt(supervision)); setText('daycareResult',fmt(daycare)); setText('typhoonResult',fmt(typhoon));
   $("shortageBadge").classList.toggle('hidden',weekdayOvertime>=0);
   $("specialDayBody").innerHTML=special.length ? special.map(r=>{
@@ -444,7 +444,7 @@ function renderWeeklyCheck(period,days,records) {
   $("weeklyBody").innerHTML=rows.length?rows.join(''):'<tr><td colspan="6" class="empty">所選期間沒有可檢查的週次</td></tr>';
 }
 function clearResults(){
-  ['periodWork','transportTotal','overtimeTotal','requiredResult','weekdayActual','weekdayOvertime','saturdayOvertime','saturdayTier1','saturdayTier2','holidayOvertime','serviceTotal','supervisionResult','daycareResult','typhoonResult'].forEach(id=>setText(id,'—'));
+  ['periodWork','transportTotal','overtimeTotal','requiredResult','weekdayActual','weekdayOvertime','saturdayOvertime','saturdayTier1','saturdayTier2','holidayOvertime','supervisionResult','daycareResult','typhoonResult'].forEach(id=>setText(id,'—'));
   $("shortageBadge").classList.add('hidden'); $("warnings").classList.add('hidden'); $("resultsPanel").classList.add('hidden');
   $("overtimeCard").classList.remove('overtime-warning'); $("overtimeWarning").classList.add('hidden');
   $("specialDayBody").innerHTML='<tr><td colspan="8" class="empty">尚未產生資料</td></tr>';
