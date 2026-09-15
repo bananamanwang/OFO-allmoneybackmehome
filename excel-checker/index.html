@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>財團法人老五老基金會-工時計算(全自動版)</title>
-  <link rel="stylesheet" href="style.css?v=20260901-6">
+  <link rel="stylesheet" href="style.css?v=20260915-7">
   <script src="assets/jszip.min.js?v=3.10.1" defer></script>
   <script src="app.js?v=20260915-12" defer></script>
 </head>
 <body>
   <header class="hero">
     <div class="wrap">
-      <div class="hero-meta"><span>製作日期：2026.09.15｜第十版</span><span>製作人：王瑄葆</span></div>
+      <div class="hero-meta"><span>製作日期：2026.09.15｜第十一版</span><span>製作人：王瑄葆</span></div>
       <p class="eyebrow">瀏覽器本機驗算工具</p>
       <h1>財團法人老五老基金會-工時計算(全自動版)</h1>
       <p>選擇整月份或四週工時週期，填入團督與日照時數，再放入服務紀錄總表即可自動分類、計算與核對。</p>
@@ -101,18 +101,24 @@
         <article id="overtimeCard" class="summary-card purple"><small>總加班時數</small><strong id="overtimeTotal">—</strong><span>負數平日加班不列入</span><b id="overtimeWarning" class="card-warning hidden">⚠ 已超過 46 小時</b></article>
       </div>
 
-      <div class="detail-grid">
+      <div class="detail-grid overtime-layout">
+        <div class="metric prominent-metric weekday-overtime-metric">
+          <span>平日加班</span><strong id="weekdayOvertime">—</strong><b id="shortageBadge" class="badge danger hidden">應上不足</b>
+        </div>
+        <div class="metric prominent-metric saturday-metric">
+          <div class="saturday-stat"><span>週六加班</span><strong id="saturdayOvertime">—</strong></div>
+          <div class="saturday-stat"><span>1～2 小時合計</span><strong id="saturdayTier1">—</strong></div>
+          <div class="saturday-stat"><span>2～8 小時合計</span><strong id="saturdayTier2">—</strong></div>
+        </div>
+        <div class="metric prominent-metric holiday-overtime-metric"><span>國定假日加班</span><strong id="holidayOvertime">—</strong></div>
+        <div class="metric prominent-metric typhoon-overtime-metric"><span>颱風假時數</span><strong id="typhoonResult">—</strong></div>
+      </div>
+
+      <div class="detail-grid secondary-metrics">
         <div class="metric"><span>應上工時</span><strong id="requiredResult">—</strong></div>
         <div class="metric"><span>平日實際工時</span><strong id="weekdayActual">—</strong></div>
-        <div class="metric"><span>平日加班</span><strong id="weekdayOvertime">—</strong><b id="shortageBadge" class="badge danger hidden">應上不足</b></div>
-        <div class="metric"><span>週六加班</span><strong id="saturdayOvertime">—</strong></div>
-        <div class="metric"><span>週六 1～2 小時合計</span><strong id="saturdayTier1">—</strong></div>
-        <div class="metric"><span>週六 2～8 小時合計</span><strong id="saturdayTier2">—</strong></div>
-        <div class="metric"><span>國定假日加班</span><strong id="holidayOvertime">—</strong></div>
-        <div class="metric"><span>服務工時</span><strong id="serviceTotal">—</strong></div>
         <div class="metric"><span>團督時數</span><strong id="supervisionResult">—</strong></div>
         <div class="metric"><span>日照時數</span><strong id="daycareResult">—</strong></div>
-        <div class="metric"><span>颱風假時數</span><strong id="typhoonResult">—</strong></div>
       </div>
 
       <div class="audit-sections">
