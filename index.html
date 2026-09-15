@@ -448,7 +448,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.09.15第十五版</span>
+        <span>2026.09.15第十六版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -574,6 +574,10 @@
                 <div class="detail-item saturday-detail">
                     <span class="detail-label">週六 2～8 小時合計</span>
                     <div class="detail-value-wrap"><span class="detail-value" id="saturdayTier2Total">0.00 小時</span></div>
+                </div>
+                <div class="detail-item saturday-detail saturday-total-row">
+                    <span class="detail-label">週六大於 8 小時合計</span>
+                    <div class="detail-value-wrap"><span class="detail-value" id="saturdayOver8Total">0.00 小時</span></div>
                 </div>
                 <div class="detail-item holiday-detail">
                     <span class="detail-label">國定假日加班</span>
@@ -970,6 +974,7 @@
         let saturdayHours = 0;
         let saturdayTier1Hours = 0;
         let saturdayTier2Hours = 0;
+        let saturdayOver8Hours = 0;
         let satAlertsHTML = '';
         
         getCategoryDailyTotals('sat').forEach(({ index, label, minutes: satDailyMin }) => {
@@ -978,6 +983,7 @@
             const tier2Minutes = Math.min(Math.max(satDailyMin - 120, 0), 360);
             saturdayTier1Hours += tier1Minutes / 60;
             saturdayTier2Hours += tier2Minutes / 60;
+            saturdayOver8Hours += Math.max(satDailyMin - 480, 0) / 60;
             document.getElementById(`satTier1${index}`).innerText = (tier1Minutes / 60).toFixed(2) + ' 小時';
             document.getElementById(`satTier2${index}`).innerText = (tier2Minutes / 60).toFixed(2) + ' 小時';
 
@@ -1040,6 +1046,7 @@
         document.getElementById('saturdayTotal').innerText = saturdayHours.toFixed(2) + " 小時";
         document.getElementById('saturdayTier1Total').innerText = saturdayTier1Hours.toFixed(2) + " 小時";
         document.getElementById('saturdayTier2Total').innerText = saturdayTier2Hours.toFixed(2) + " 小時";
+        document.getElementById('saturdayOver8Total').innerText = saturdayOver8Hours.toFixed(2) + " 小時";
         document.getElementById('holidayTotal').innerText = holidayHoursOnly.toFixed(2) + " 小時";
         document.getElementById('typhoonTotal').innerText = typhoonHoursOnly.toFixed(2) + " 小時";
 
