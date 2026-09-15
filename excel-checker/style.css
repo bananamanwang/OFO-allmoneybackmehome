@@ -14,7 +14,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","
 .prominent-metric>span,.saturday-stat span{font-size:15px;font-weight:800}
 .prominent-metric>strong,.saturday-stat strong{display:block;margin-top:5px;font-size:29px;font-weight:900;line-height:1.2}
 .weekday-overtime-metric{grid-column:1/-1;background:#fff8e8;border-color:#e3a62b}
-.saturday-metric{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;background:#eef7ff;border-color:#258bd3}
+.saturday-metric{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;background:#eef7ff;border-color:#258bd3}
 .saturday-stat{padding:2px 18px;border-left:1px solid #c9e0f0}
 .saturday-stat:first-child{padding-left:0;border-left:0}
 .holiday-overtime-metric{background:#fff5ef;border-color:#df7134}
