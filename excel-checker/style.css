@@ -22,3 +22,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","
 .secondary-metrics{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:10px}
 .secondary-metrics .metric{min-height:78px;background:#f7f9fa}
 @media(max-width:850px){.secondary-metrics{grid-template-columns:repeat(2,1fr)}.saturday-metric{grid-template-columns:1fr}.saturday-stat{padding:10px 0;border-left:0;border-top:1px solid #c9e0f0}.saturday-stat:first-child{border-top:0}}
+
+/* Shared semantic colors: work blue, transport teal, overtime purple. */
+.summary-card.blue{color:#175cd3}
+.summary-card.teal{color:#147a67}
+.summary-card.purple{color:#5b3fa3}
+.weekday-overtime-metric>span,.weekday-overtime-metric>strong{color:#8a5a00}
+.saturday-metric .saturday-stat span,.saturday-metric .saturday-stat strong{color:#175cd3}
+.holiday-overtime-metric>span,.holiday-overtime-metric>strong{color:#b54708}
+.typhoon-overtime-metric>span,.typhoon-overtime-metric>strong{color:#5b3fa3}
