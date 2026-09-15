@@ -23,7 +23,7 @@ const HOLIDAYS = {
 };
 
 const $ = id => document.getElementById(id);
-const state = { files: [], requiredManual: false };
+const state = { files: [], requiredManual: false, loadId: 0 };
 const holidayMap = new Map(Object.values(HOLIDAYS).flat());
 const pad = n => String(n).padStart(2,"0");
 const iso = d => `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`;
@@ -215,15 +215,27 @@ function renderCalendar(days) {
 }
 
 async function loadFiles(fileList) {
+  const loadId=++state.loadId;
   const files=[...fileList].filter(f => f.name.toLowerCase().endsWith('.xlsx'));
-  if (!files.length) return showStatus('請選取 .xlsx 格式的服務紀錄總表。',true);
-  if (typeof JSZip === 'undefined') return showStatus('Excel 解析元件載入失敗，請重新整理頁面。',true);
+  state.files=[];
+  $("fileTableWrap").classList.add('hidden');
+  clearResults();
+  if (!files.length) {
+    $("fileInput").value='';
+    return showStatus('請選取 .xlsx 格式的服務紀錄總表；原有結果已清除。',true);
+  }
+  if (typeof JSZip === 'undefined') {
+    $("fileInput").value='';
+    return showStatus('Excel 解析元件載入失敗，請重新整理頁面。',true);
+  }
   showStatus(`正在解析 ${files.length} 個檔案…`);
   const parsed=[];
   for (const file of files) {
     try { parsed.push(await parseWorkbook(file)); }
     catch (error) { parsed.push({name:file.name,error:error.message || '無法解析'}); }
+    if(loadId!==state.loadId) return;
   }
+  if(loadId!==state.loadId) return;
   state.files=parsed;
   renderFiles(); calculate();
 }
@@ -237,28 +249,31 @@ async function parseWorkbook(file) {
   const workbook=await readXml('xl/workbook.xml');
   const rels=await readXml('xl/_rels/workbook.xml.rels');
   const relMap=new Map([...rels.getElementsByTagNameNS('*','Relationship')].map(r=>[r.getAttribute('Id'),r.getAttribute('Target')]));
-  const firstSheet=workbook.getElementsByTagNameNS('*','sheet')[0];
-  if(!firstSheet) throw new Error('找不到工作表');
-  const relId=firstSheet.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id') || firstSheet.getAttribute('r:id');
-  let target=relMap.get(relId); if(!target) throw new Error('找不到工作表資料');
-  target=target.replace(/^\//,''); if(!target.startsWith('xl/')) target=`xl/${target.replace(/^\.\//,'')}`;
-  const sheet=await readXml(target);
   let shared=[];
   if(zip.file('xl/sharedStrings.xml')) {
     const ss=await readXml('xl/sharedStrings.xml');
     shared=[...ss.getElementsByTagNameNS('*','si')].map(si=>[...si.getElementsByTagNameNS('*','t')].map(t=>t.textContent).join(''));
   }
-  const cells=new Map();
-  for(const c of sheet.getElementsByTagNameNS('*','c')) {
-    const ref=c.getAttribute('r'), type=c.getAttribute('t');
-    const v=c.getElementsByTagNameNS('*','v')[0];
-    let value='';
-    if(type==='s' && v) value=shared[Number(v.textContent)] || '';
-    else if(type==='inlineStr') value=[...c.getElementsByTagNameNS('*','t')].map(t=>t.textContent).join('');
-    else value=v?.textContent || '';
-    if(value) cells.set(ref,value);
+  const sheets=[...workbook.getElementsByTagNameNS('*','sheet')];
+  if(!sheets.length) throw new Error('找不到工作表');
+  for(const sheetInfo of sheets) {
+    const relId=sheetInfo.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id') || sheetInfo.getAttribute('r:id');
+    let target=relMap.get(relId); if(!target) continue;
+    target=target.replace(/^\//,''); if(!target.startsWith('xl/')) target=`xl/${target.replace(/^\.\//,'')}`;
+    const sheet=await readXml(target);
+    const cells=new Map();
+    for(const c of sheet.getElementsByTagNameNS('*','c')) {
+      const ref=c.getAttribute('r'), type=c.getAttribute('t');
+      const v=c.getElementsByTagNameNS('*','v')[0];
+      let value='';
+      if(type==='s' && v) value=shared[Number(v.textContent)] || '';
+      else if(type==='inlineStr') value=[...c.getElementsByTagNameNS('*','t')].map(t=>t.textContent).join('');
+      else value=v?.textContent || '';
+      if(value) cells.set(ref,value);
+    }
+    if([...cells.values()].some(value=>/班表年月\s*[:：]/.test(value))) return parseCells(cells,file.name);
   }
-  return parseCells(cells,file.name);
+  throw new Error('所有工作表都找不到「班表年月」');
 }
 
 function parseCells(cells,fileName) {
@@ -271,20 +286,25 @@ function parseCells(cells,fileName) {
   const reportStart=new Date(Date.UTC(year,month-1,ym[3]?+ym[3]:1));
   if(reportStart.getUTCMonth()!==month-1) throw new Error('班表起始日期無效');
   const reportEnd=ym[3]?new Date(+reportStart+27*86400000):new Date(Date.UTC(year,month,0));
-  const employee=metaText.match(/員工姓名\s*:\s*(.*?)\s+員工編號\s*:/)?.[1]?.trim() || '未辨識';
-  const employeeId=metaText.match(/員工編號\s*:\s*([^\s]+)/)?.[1] || '—';
-  const headerWork=+(metaText.match(/總工時\s*:\s*(\d+)分鐘/)?.[1] || 0);
-  const headerTransport=+(metaText.match(/總交通\s*:\s*(\d+)分鐘/)?.[1] || 0);
-  const employeeLeave=+(metaText.match(/員工請假總工時\s*:\s*(\d+)分鐘/)?.[1] || 0);
-  const clientLeave=+(metaText.match(/個案請假總工時\s*:\s*(\d+)分鐘/)?.[1] || 0);
+  const employee=metaText.match(/員工姓名\s*[:：]\s*(.*?)\s+員工編號\s*[:：]/)?.[1]?.trim() || '未辨識';
+  const employeeId=metaText.match(/員工編號\s*[:：]\s*([^\s]+)/)?.[1] || '—';
+  const headerWork=+(metaText.match(/總工時\s*[:：]\s*(\d+)\s*分鐘/)?.[1] || 0);
+  const headerTransport=+(metaText.match(/總交通\s*[:：]\s*(\d+)\s*分鐘/)?.[1] || 0);
+  const employeeLeave=+(metaText.match(/員工請假總工時\s*[:：]\s*(\d+)\s*分鐘/)?.[1] || 0);
+  const clientLeave=+(metaText.match(/個案請假總工時\s*[:：]\s*(\d+)\s*分鐘/)?.[1] || 0);
   const records=[];
   for(const [ref,value] of cells) {
-    const dm=value.match(/^(\d{1,2})\/(\d{1,2})\(星期[一二三四五六日]\)$/);
+    const dm=value.match(/^\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*\(\s*星期[一二三四五六日]\s*\)\s*$/);
     if(!dm) continue;
     const pos=ref.match(/^([A-Z]+)(\d+)$/); if(!pos) continue;
     const col=pos[1], row=+pos[2];
-    const work=+(cells.get(`${col}${row+1}`)?.match(/工時(\d+)分鐘/)?.[1] || 0);
-    const transport=+(cells.get(`${col}${row+2}`)?.match(/交通(\d+)分鐘/)?.[1] || 0);
+    const workText=cells.get(`${col}${row+1}`) || '';
+    const transportText=cells.get(`${col}${row+2}`) || '';
+    const workMatch=workText.match(/工時\s*(\d+)\s*分鐘/);
+    const transportMatch=transportText.match(/交通\s*(\d+)\s*分鐘/);
+    if(workText && !workMatch) throw new Error(`無法辨識 ${value} 的工時欄`);
+    if(transportText && !transportMatch) throw new Error(`無法辨識 ${value} 的交通欄`);
+    const work=+(workMatch?.[1] || 0), transport=+(transportMatch?.[1] || 0);
     let recordYear=year;
     if(ym[3] && +dm[1]<month) recordYear++;
     const date=iso(new Date(Date.UTC(recordYear,+dm[1]-1,+dm[2])));
@@ -301,13 +321,21 @@ function parseCells(cells,fileName) {
 
 function renderFiles() {
   const body=$("fileTableBody");
-  body.innerHTML=state.files.map(f => f.error
-    ? `<tr><td>${esc(f.name)}</td><td colspan="5" class="check-bad">${esc(f.error)}</td><td class="check-bad">失敗</td></tr>`
-    : `<tr><td title="${esc(f.name)}">${esc(shortName(f.name))}</td><td>${esc(f.employee)}<br><small>${esc(f.employeeId)}</small></td><td>${esc(f.reportStart)} ～ ${esc(f.reportEnd)}</td><td>${fmt(hours(f.headerWork))}</td><td>${fmt(hours(f.headerTransport))}</td><td>員工 ${f.employeeLeave} 分<br>個案 ${f.clientLeave} 分</td><td class="${f.reconciled?'check-ok':'check-bad'}">${f.reconciled?'吻合':reconcileLabel(f)}</td></tr>`
+  body.innerHTML=state.files.map((f,index) => f.error
+    ? `<tr><td>${esc(f.name)}</td><td colspan="5" class="check-bad">${esc(f.error)}</td><td class="check-bad">失敗</td><td><button class="file-remove" type="button" data-remove-file="${index}">移除</button></td></tr>`
+    : `<tr><td title="${esc(f.name)}">${esc(shortName(f.name))}</td><td>${esc(f.employee)}<br><small>${esc(f.employeeId)}</small></td><td>${esc(f.reportStart)} ～ ${esc(f.reportEnd)}</td><td>${fmt(hours(f.headerWork))}</td><td>${fmt(hours(f.headerTransport))}</td><td>員工 ${f.employeeLeave} 分<br>個案 ${f.clientLeave} 分</td><td class="${f.reconciled?'check-ok':'check-bad'}">${f.reconciled?'吻合':reconcileLabel(f)}</td><td><button class="file-remove" type="button" data-remove-file="${index}">移除</button></td></tr>`
   ).join('');
+  body.querySelectorAll('[data-remove-file]').forEach(button => button.addEventListener('click',() => removeFile(Number(button.dataset.removeFile))));
   $("fileTableWrap").classList.remove("hidden");
   const success=state.files.filter(f=>!f.error).length, failed=state.files.length-success;
   showStatus(`已讀取 ${success} 個檔案${failed?`，${failed} 個失敗`:''}。`,!!failed);
+}
+
+function removeFile(index) {
+  if(!Number.isInteger(index) || index<0 || index>=state.files.length) return;
+  state.files.splice(index,1);
+  if(!state.files.length) { clearFileState(); calculate(); return; }
+  renderFiles(); calculate();
 }
 
 function shortName(name){return name.length>25?`${name.slice(0,22)}…`:name}
@@ -326,7 +354,7 @@ function calculate() {
   if(people.size>1) {
     clearResults();
     $("periodLabel").textContent=`${p.label}｜已停止計算`;
-    $("specialDayBody").innerHTML='<tr><td colspan="8" class="empty check-bad">不同員工的資料不可合併驗算</td></tr>';
+    $("specialDayBody").innerHTML='<tr><td colspan="9" class="empty check-bad">不同員工的資料不可合併驗算</td></tr>';
     $("weeklyBody").innerHTML='<tr><td colspan="6" class="empty check-bad">不同員工的資料不可合併驗算</td></tr>';
     renderWarnings(['選取的檔案屬於不同員工，已停止計算。請清除後，分別上傳驗算。'],true);
     $("resultsPanel").classList.remove('hidden','muted');
@@ -365,7 +393,7 @@ function calculate() {
       const tier1Min=Math.min(totalMin,120), tier2Min=Math.min(Math.max(totalMin-120,0),360);
       saturdayMin+=totalMin; saturdayTier1Min+=tier1Min; saturdayTier2Min+=tier2Min;
       saturdayOver8Min+=Math.max(totalMin-480,0);
-      special.push({date,type:holidayMap.get(date)?`週六／${holidayMap.get(date)}`:'週六',isSaturday:true,isHoliday:holidayMap.has(date),tier1Min,tier2Min,...r});
+      special.push({date,type:holidayMap.get(date)?`週六／${holidayMap.get(date)}`:'週六',isSaturday:true,isHoliday:holidayMap.has(date),tier1Min,tier2Min,over8Min:Math.max(totalMin-480,0),...r});
     }
     else if(holidayMap.has(date)) { holidayMin+=r.work+r.transport; special.push({date,type:holidayMap.get(date),isHoliday:true,...r}); }
   }
@@ -387,9 +415,9 @@ function calculate() {
     const total=hours(r.work+r.transport), over=total>8;
     const excess=Math.max(total-8,0);
     if(over) warnings.push(`${r.date} 的工時加交通為 ${total.toFixed(2)} 小時，超過 ${excess.toFixed(2)} 小時。`);
-    const tier1=r.isSaturday?fmt(hours(r.tier1Min)):'—', tier2=r.isSaturday?fmt(hours(r.tier2Min)):'—';
-    return `<tr class="${r.isHoliday?'holiday-detail-row':''}"><td>${r.date}</td><td class="${r.isHoliday?'holiday-detail-label':''}">${esc(r.type)}</td><td>${fmt(hours(r.work))}</td><td>${fmt(hours(r.transport))}</td><td><strong>${fmt(total)}</strong></td><td><strong>${tier1}</strong></td><td><strong>${tier2}</strong></td><td class="${over?'check-bad':'check-ok'}">${over?`超過 ${excess.toFixed(2)} 小時`:'未超過 8 小時'}</td></tr>`;
-  }).join('') : '<tr><td colspan="8" class="empty">期間內沒有週六或國定假日</td></tr>';
+    const tier1=r.isSaturday?fmt(hours(r.tier1Min)):'—', tier2=r.isSaturday?fmt(hours(r.tier2Min)):'—', over8=r.isSaturday?fmt(hours(r.over8Min)):'—';
+    return `<tr class="${r.isSaturday?'saturday-detail-row':r.isHoliday?'holiday-detail-row':''}"><td>${r.date}</td><td class="${r.isHoliday?'holiday-detail-label':''}">${esc(r.type)}</td><td>${fmt(hours(r.work))}</td><td>${fmt(hours(r.transport))}</td><td><strong>${fmt(total)}</strong></td><td><strong>${tier1}</strong></td><td><strong>${tier2}</strong></td><td class="${r.isSaturday&&r.over8Min>0?'check-bad':''}"><strong>${over8}</strong></td><td class="${over?'check-bad':'check-ok'}">${over?`超過 ${excess.toFixed(2)} 小時`:'未超過 8 小時'}</td></tr>`;
+  }).join('') : '<tr><td colspan="9" class="empty">期間內沒有週六或國定假日</td></tr>';
   renderWeeklyCheck(p,days,merged);
   renderWarnings(warnings);
   $("resultsPanel").classList.remove('hidden','muted');
@@ -406,7 +434,7 @@ function stopCalculation(period,warnings,message) {
   clearResults();
   $("periodLabel").textContent=`${period.label}｜已停止計算`;
   const safe=esc(message);
-  $("specialDayBody").innerHTML=`<tr><td colspan="8" class="empty check-bad">${safe}</td></tr>`;
+  $("specialDayBody").innerHTML=`<tr><td colspan="9" class="empty check-bad">${safe}</td></tr>`;
   $("weeklyBody").innerHTML=`<tr><td colspan="6" class="empty check-bad">${safe}</td></tr>`;
   renderWarnings([...warnings,message],true);
   $("resultsPanel").classList.remove('hidden','muted');
@@ -423,12 +451,13 @@ function renderWeeklyCheck(period,days,records) {
   const rows=[...weekKeys.values()].map(monday => {
     const friday=new Date(monday); friday.setUTCDate(friday.getUTCDate()+4);
     const weekEnd=new Date(monday); weekEnd.setUTCDate(weekEnd.getUTCDate()+6);
-    let complete=monday>=period.start && friday<=period.end;
+    const boundaryComplete=monday>=period.start && friday<=period.end;
+    let dataComplete=true;
     let workMin=0,transportMin=0,workdays=0;
     for(let offset=0;offset<5;offset++) {
       const day=new Date(monday); day.setUTCDate(day.getUTCDate()+offset);
       if(!holidayMap.has(iso(day))) workdays++;
-      if(!records.has(iso(day))) complete=false;
+      if(day>=period.start && day<=period.end && !records.has(iso(day))) dataComplete=false;
       if(day<period.start || day>period.end || holidayMap.has(iso(day))) continue;
       const record=records.get(iso(day));
       workMin+=record?.work || 0;
@@ -436,11 +465,12 @@ function renderWeeklyCheck(period,days,records) {
     }
     const target=workdays*8,total=hours(workMin+transportMin),diff=total-target;
     let result,cls;
-    if(!complete) {result='資料不足，無法驗算';cls='check-neutral';}
+    if(!boundaryComplete) {result='跨月週次，未納入驗算';cls='check-neutral';}
+    else if(!dataComplete) {result='資料不足，無法驗算';cls='check-neutral';}
     else if(diff>0) {result=`已達，超過 ${diff.toFixed(2)} 小時`;cls='check-ok';}
     else if(diff===0) {result='剛好達應上時數';cls='check-ok';}
     else {result=`未達，少 ${Math.abs(diff).toFixed(2)} 小時`;cls='check-bad';}
-    return `<tr><td>${iso(monday)}～${iso(weekEnd)}</td><td>${fmt(hours(workMin))}</td><td>${fmt(hours(transportMin))}</td><td><strong>${fmt(total)}</strong></td><td>${complete?`${workdays} 天 × 8＝${fmt(target)}`:'—'}</td><td class="${cls}">${result}</td></tr>`;
+    return `<tr><td>${iso(monday)}～${iso(weekEnd)}</td><td>${fmt(hours(workMin))}</td><td>${fmt(hours(transportMin))}</td><td><strong>${fmt(total)}</strong></td><td>${boundaryComplete&&dataComplete?`${workdays} 天 × 8＝${fmt(target)}`:'—'}</td><td class="${cls}">${result}</td></tr>`;
   });
   $("weeklyBody").innerHTML=rows.length?rows.join(''):'<tr><td colspan="6" class="empty">所選期間沒有可檢查的週次</td></tr>';
 }
@@ -448,10 +478,10 @@ function clearResults(){
   ['periodWork','transportTotal','overtimeTotal','requiredResult','weekdayActual','weekdayOvertime','saturdayOvertime','saturdayTier1','saturdayTier2','saturdayOver8','holidayOvertime','supervisionResult','daycareResult','typhoonResult'].forEach(id=>setText(id,'—'));
   $("shortageBadge").classList.add('hidden'); $("warnings").classList.add('hidden'); $("resultsPanel").classList.add('hidden');
   $("overtimeCard").classList.remove('overtime-warning'); $("overtimeWarning").classList.add('hidden');
-  $("specialDayBody").innerHTML='<tr><td colspan="8" class="empty">尚未產生資料</td></tr>';
+  $("specialDayBody").innerHTML='<tr><td colspan="9" class="empty">尚未產生資料</td></tr>';
   $("weeklyBody").innerHTML='<tr><td colspan="6" class="empty">尚未產生資料</td></tr>';
 }
-function clearFileState(){state.files=[];$("fileInput").value='';$("fileTableWrap").classList.add('hidden');$("status").classList.add('hidden')}
+function clearFileState(){state.loadId++;state.files=[];$("fileInput").value='';$("fileTableWrap").classList.add('hidden');$("status").classList.add('hidden')}
 function resetFiles(){clearFileState();calculate()}
 function clearAll(){
   if(!window.confirm('確定要清除已選檔案與所有手動填寫的時數嗎？')) return;
