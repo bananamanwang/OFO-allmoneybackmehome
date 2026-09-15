@@ -160,6 +160,21 @@
             font-size: 0.95rem;
         }
 
+        .tier-breakdown {
+            grid-column: 2 / -1;
+            display: flex;
+            justify-content: flex-end;
+            gap: 22px;
+            padding-top: 2px;
+            color: #475467;
+            font-size: 0.86rem;
+        }
+
+        .tier-breakdown strong {
+            color: var(--primary-color);
+            font-size: 0.95rem;
+        }
+
         label {
             font-size: 0.9rem;
             margin-bottom: 6px;
@@ -405,7 +420,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.09.14第十一版</span>
+        <span>2026.09.15第十二版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -529,6 +544,18 @@
                     </div>
                 </div>
                 <div class="detail-item">
+                    <span class="detail-label">週六 1～2 小時合計</span>
+                    <div class="detail-value-wrap">
+                        <span class="detail-value" id="saturdayTier1Total">0.00 小時</span>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">週六 2～8 小時合計</span>
+                    <div class="detail-value-wrap">
+                        <span class="detail-value" id="saturdayTier2Total">0.00 小時</span>
+                    </div>
+                </div>
+                <div class="detail-item">
                     <span class="detail-label">國定假日加班</span>
                     <div class="detail-value-wrap">
                         <span class="detail-value" id="holidayTotal">0.00 小時</span>
@@ -550,7 +577,7 @@
         </div>
 
         <div class="calculation-note">
-            <strong>計算說明：</strong>期間總工時不含交通＝全家寶＋日照＋團督＋颱風；總加班仍會計入交通時間，計算方式為平日加班正數＋週六加班＋國定假日加班。平日加班為負數時不列入總加班。
+            <strong>計算說明：</strong>期間總工時不含交通＝全家寶＋日照＋團督＋颱風；週六另依每日工時＋交通拆分為 1～2 小時與 2～8 小時兩個薪資填報級距；總加班仍會計入交通時間，計算方式為平日加班正數＋週六加班＋國定假日加班。平日加班為負數時不列入總加班。
         </div>
 
         <div id="alertBox" class="alert-box"></div>
@@ -664,6 +691,7 @@
                 <label for="${prefix}W${index}">${label}</label>
                 <input type="number" id="${prefix}W${index}" data-category="${category}" data-entry="work" data-label="${label}" aria-label="${label} 工時（分鐘）" placeholder="填工時(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()">
                 <input type="number" id="${prefix}T${index}" data-category="${category}" data-entry="transport" data-label="${label}" aria-label="${label} 交通（分鐘）" placeholder="填交通(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()">
+                ${category === 'sat' ? `<div class="tier-breakdown" aria-live="polite"><span>1～2 小時：<strong id="satTier1${index}">0.00 小時</strong></span><span>2～8 小時：<strong id="satTier2${index}">0.00 小時</strong></span></div>` : ''}
             </div>`;
     }
 
@@ -914,6 +942,7 @@
             const index = workInput.id.replace(/\D/g, '');
             const prefix = category === 'sat' ? 'sat' : 'hol';
             return {
+                index,
                 label: workInput.dataset.label,
                 minutes: getVal(workInput.id) + getVal(`${prefix}T${index}`)
             };
@@ -931,8 +960,14 @@
         let saturdayHours = 0;   
         let satAlertsHTML = '';
         
-        getCategoryDailyTotals('sat').forEach(({ label, minutes: satDailyMin }) => {
+        getCategoryDailyTotals('sat').forEach(({ index, label, minutes: satDailyMin }) => {
             saturdayHours += satDailyMin / 60;
+            const tier1Minutes = Math.min(satDailyMin, 120);
+            const tier2Minutes = Math.min(Math.max(satDailyMin - 120, 0), 360);
+            saturdayTier1Hours += tier1Minutes / 60;
+            saturdayTier2Hours += tier2Minutes / 60;
+            document.getElementById(`satTier1${index}`).innerText = (tier1Minutes / 60).toFixed(2) + ' 小時';
+            document.getElementById(`satTier2${index}`).innerText = (tier2Minutes / 60).toFixed(2) + ' 小時';
 
             if (satDailyMin > 480) {
                 let excessMin = satDailyMin - 480;
@@ -991,6 +1026,8 @@
         document.getElementById('weekdayTotal').innerText = finalWeekdayTotal.toFixed(2) + " 小時";
         document.getElementById('transportTotal').innerText = transportHours.toFixed(2) + " 小時";
         document.getElementById('saturdayTotal').innerText = saturdayHours.toFixed(2) + " 小時";
+        document.getElementById('saturdayTier1Total').innerText = saturdayTier1Hours.toFixed(2) + " 小時";
+        document.getElementById('saturdayTier2Total').innerText = saturdayTier2Hours.toFixed(2) + " 小時";
         document.getElementById('holidayTotal').innerText = holidayHoursOnly.toFixed(2) + " 小時";
         document.getElementById('typhoonTotal').innerText = typhoonHoursOnly.toFixed(2) + " 小時";
 
