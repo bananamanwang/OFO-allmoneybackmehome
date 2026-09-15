@@ -22,7 +22,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1120px;
             margin: 0 auto;
             background: #ffffff;
             padding: 30px;
@@ -141,17 +141,40 @@
             text-align: center;
         }
 
+        .time-entry-header,
         .time-entry-row {
             display: grid;
-            grid-template-columns: minmax(220px, 1.25fr) repeat(2, minmax(0, 1fr));
-            gap: 15px;
+            gap: 10px;
             align-items: center;
+        }
+
+        .time-entry-header {
+            padding: 0 12px 7px;
+            color: #66727d;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        .saturday-time-header,
+        .saturday-time-row {
+            grid-template-columns: minmax(145px, 1.15fr) repeat(5, minmax(105px, 1fr));
+        }
+
+        .holiday-time-header,
+        .holiday-time-row {
+            grid-template-columns: minmax(260px, 1.5fr) repeat(2, minmax(150px, 1fr));
+        }
+
+        .time-entry-row {
             margin-bottom: 12px;
             background-color: #fafafa;
-            padding: 8px 12px;
+            padding: 10px 12px;
             border-radius: 6px;
             border: 1px solid #eee;
         }
+
+        .saturday-time-row { border-left: 4px solid #258bd3; }
+        .holiday-time-row { border-left: 4px solid #df7134; background-color: #fffaf7; }
 
         .time-entry-row label {
             margin: 0;
@@ -160,19 +183,16 @@
             font-size: 0.95rem;
         }
 
-        .tier-breakdown {
-            grid-column: 2 / -1;
-            display: flex;
-            justify-content: flex-end;
-            gap: 22px;
-            padding-top: 2px;
-            color: #475467;
-            font-size: 0.86rem;
+        .tier-value {
+            color: #175cd3;
+            font-size: 0.95rem;
+            font-weight: 750;
+            text-align: center;
+            white-space: nowrap;
         }
 
-        .tier-breakdown strong {
-            color: var(--primary-color);
-            font-size: 0.95rem;
+        .tier-value.over-eight {
+            color: #d92d20;
         }
 
         label {
@@ -437,6 +457,7 @@
         }
 
         @media (max-width: 600px) {
+            .time-entry-header { display: none; }
             .time-entry-row {
                 grid-template-columns: 1fr;
                 gap: 8px;
@@ -455,7 +476,7 @@
     
     <!-- 更新後的左右側資訊列 -->
     <div class="header-info">
-        <span>2026.09.15第十七版</span>
+        <span>2026.09.15第十八版</span>
         <span>王瑄葆製作</span>
     </div>
     
@@ -519,12 +540,14 @@
 
     <div class="section-title">2. 週六時間 (單位：分鐘)</div>
     <div class="calendar-note">依所選月份或四週工時週期自動顯示全部週六；若週六同時為國定假日，會在日期旁標註並只在本區填寫。</div>
+    <div class="time-entry-header saturday-time-header" aria-hidden="true"><span>日期</span><span>服務工時</span><span>交通</span><span>前2小時</span><span>第3～8小時</span><span class="unit-warning">超過8小時</span></div>
     <div id="saturdayContainer"></div>
     <!-- 週六超時警告專區 -->
     <div id="saturdayAlerts" class="alert-container"></div>
 
     <div class="section-title">3. 國定假日 (單位：分鐘)</div>
     <div class="calendar-note">依行政院人事行政總處辦公日曆資料顯示放假日與補假日；已列入週六區的日期不重複顯示。</div>
+    <div class="time-entry-header holiday-time-header" aria-hidden="true"><span>日期／假日</span><span>服務工時</span><span>交通</span></div>
     <div id="holidayContainer"></div>
     <!-- 國定假日超時警告專區 -->
     <div id="holidayAlerts" class="alert-container"></div>
@@ -575,11 +598,11 @@
                     <div class="detail-value-wrap"><span class="detail-value" id="saturdayTotal">0.00 小時</span></div>
                 </div>
                 <div class="detail-item saturday-detail saturday-tier-detail">
-                    <span class="detail-label">週六 1～2 小時合計</span>
+                    <span class="detail-label">週六前2小時合計</span>
                     <div class="detail-value-wrap"><span class="detail-value" id="saturdayTier1Total">0.00 小時</span></div>
                 </div>
                 <div class="detail-item saturday-detail saturday-tier-detail">
-                    <span class="detail-label">週六 2～8 小時合計</span>
+                    <span class="detail-label">週六第3～8小時合計</span>
                     <div class="detail-value-wrap"><span class="detail-value" id="saturdayTier2Total">0.00 小時</span></div>
                 </div>
                 <div class="detail-item saturday-detail saturday-tier-detail saturday-over8-detail">
@@ -598,7 +621,7 @@
         </div>
 
         <div class="calculation-note">
-            <strong>計算說明：</strong>期間總工時不含交通＝全家寶＋日照＋團督＋颱風；週六另依每日工時＋交通拆分為 1～2 小時與 2～8 小時兩個薪資填報級距；總加班仍會計入交通時間，計算方式為平日加班正數＋週六加班＋國定假日加班。平日加班為負數時不列入總加班。
+            <strong>計算說明：</strong>期間總工時不含交通＝全家寶＋日照＋團督＋颱風；週六另依每日工時＋交通拆分為前2小時、第3～8小時及超過8小時；總加班仍會計入交通時間，計算方式為平日加班正數＋週六加班＋國定假日加班。平日加班為負數時不列入總加班。
         </div>
 
         <div id="alertBox" class="alert-box"></div>
@@ -708,11 +731,11 @@
 
     function createTimeRow(prefix, index, label, category) {
         return `
-            <div class="time-entry-row">
+            <div class="time-entry-row ${category === 'sat' ? 'saturday-time-row' : 'holiday-time-row'}">
                 <label for="${prefix}W${index}">${label}</label>
                 <input type="number" id="${prefix}W${index}" data-category="${category}" data-entry="work" data-label="${label}" aria-label="${label} 工時（分鐘）" placeholder="填工時(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()">
                 <input type="number" id="${prefix}T${index}" data-category="${category}" data-entry="transport" data-label="${label}" aria-label="${label} 交通（分鐘）" placeholder="填交通(分)" min="0" max="1440" step="1" oninput="validateNumber(this); calculateHours()">
-                ${category === 'sat' ? `<div class="tier-breakdown" aria-live="polite"><span>1～2 小時：<strong id="satTier1${index}">0.00 小時</strong></span><span>2～8 小時：<strong id="satTier2${index}">0.00 小時</strong></span></div>` : ''}
+                ${category === 'sat' ? `<span class="tier-value" id="satTier1${index}" aria-label="${label} 前2小時">0.00 小時</span><span class="tier-value" id="satTier2${index}" aria-label="${label} 第3至8小時">0.00 小時</span><span class="tier-value over-eight" id="satOver8${index}" aria-label="${label} 超過8小時">0.00 小時</span>` : ''}
             </div>`;
     }
 
@@ -993,6 +1016,7 @@
             saturdayOver8Hours += Math.max(satDailyMin - 480, 0) / 60;
             document.getElementById(`satTier1${index}`).innerText = (tier1Minutes / 60).toFixed(2) + ' 小時';
             document.getElementById(`satTier2${index}`).innerText = (tier2Minutes / 60).toFixed(2) + ' 小時';
+            document.getElementById(`satOver8${index}`).innerText = (Math.max(satDailyMin - 480, 0) / 60).toFixed(2) + ' 小時';
 
             if (satDailyMin > 480) {
                 let excessMin = satDailyMin - 480;
