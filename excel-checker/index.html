@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>財團法人老五老基金會-工時計算(全自動版)</title>
-  <link rel="stylesheet" href="style.css?v=20260915-9">
+  <link rel="stylesheet" href="style.css?v=20260915-10">
   <script src="assets/jszip.min.js?v=3.10.1" defer></script>
-  <script src="app.js?v=20260915-13" defer></script>
+  <script src="app.js?v=20260915-14" defer></script>
 </head>
 <body>
   <header class="hero">
     <div class="wrap">
-      <div class="hero-meta"><span>製作日期：2026.09.15｜第十四版</span><span>製作人：王瑄葆</span></div>
+      <div class="hero-meta"><span>製作日期：2026.09.15｜第十五版</span><span>製作人：王瑄葆</span></div>
       <p class="eyebrow">瀏覽器本機驗算工具</p>
       <h1>財團法人老五老基金會-工時計算(全自動版)</h1>
       <p>選擇整月份或四週工時週期，填入團督與日照時數，再放入服務紀錄總表即可自動分類、計算與核對。</p>
@@ -78,7 +78,7 @@
         <p id="leaveNote" class="subnote">請假欄為 Excel 表頭記載的報表期間總數。</p>
         <div class="table-wrap compact-table">
           <table>
-            <thead><tr><th>檔案</th><th>人員</th><th>報表期間</th><th>總工時</th><th>總交通</th><th>請假（報表期間）</th><th>核對</th></tr></thead>
+            <thead><tr><th>檔案</th><th>人員</th><th>報表期間</th><th>總工時</th><th>總交通</th><th>請假（報表期間）</th><th>核對</th><th>操作</th></tr></thead>
             <tbody id="fileTableBody"></tbody>
           </table>
         </div>
@@ -108,8 +108,8 @@
         <div class="metric prominent-metric saturday-metric">
           <div class="saturday-stat saturday-total-stat"><span>週六加班</span><strong id="saturdayOvertime">—</strong></div>
           <div class="saturday-tier-grid">
-            <div class="saturday-stat"><span>1～2 小時合計</span><strong id="saturdayTier1">—</strong></div>
-            <div class="saturday-stat"><span>2～8 小時合計</span><strong id="saturdayTier2">—</strong></div>
+            <div class="saturday-stat"><span>前2小時合計</span><strong id="saturdayTier1">—</strong></div>
+            <div class="saturday-stat"><span>第3～8小時合計</span><strong id="saturdayTier2">—</strong></div>
             <div class="saturday-stat saturday-over8"><span>大於 8 小時合計</span><strong id="saturdayOver8">—</strong></div>
           </div>
         </div>
@@ -129,8 +129,8 @@
           <summary><span>週六與國定假日明細</span><small>檢查單日是否超過 8 小時</small></summary>
           <div class="table-wrap compact-table">
             <table>
-              <thead><tr><th>日期</th><th>分類</th><th>服務</th><th>交通</th><th>合計</th><th>1～2 小時</th><th>2～8 小時</th><th>檢查</th></tr></thead>
-              <tbody id="specialDayBody"><tr><td colspan="8" class="empty">尚未產生資料</td></tr></tbody>
+              <thead><tr><th>日期</th><th>分類</th><th>服務</th><th>交通</th><th>合計</th><th>前2小時</th><th>第3～8小時</th><th class="over-eight-heading">超過8小時</th><th>檢查</th></tr></thead>
+              <tbody id="specialDayBody"><tr><td colspan="9" class="empty">尚未產生資料</td></tr></tbody>
             </table>
           </div>
         </details>
@@ -149,7 +149,7 @@
 
       <details>
         <summary>查看計算方式</summary>
-        <p>平日實際工時＝服務＋交通＋團督＋日照－週六－國定假日；平日加班＝平日實際工時－應上工時；週六依每日工時＋交通拆分為 1～2 小時與 2～8 小時；總加班＝平日加班正數＋週六加班＋國定假日加班。期間總工時不含交通，但會加入颱風假補貼時數；颱風假不列入總加班。</p>
+        <p>平日實際工時＝服務＋交通＋團督＋日照－週六－國定假日；平日加班＝平日實際工時－應上工時；週六依每日工時＋交通拆分為前2小時、第3～8小時及超過8小時；總加班＝平日加班正數＋週六加班＋國定假日加班。期間總工時不含交通，但會加入颱風假補貼時數；颱風假不列入總加班。</p>
       </details>
     </section>
   </main>
