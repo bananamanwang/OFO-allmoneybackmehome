@@ -117,6 +117,10 @@
             flex-direction: column;
         }
 
+        .range-start-field {
+            min-width: 240px;
+        }
+
         .is-hidden {
             display: none !important;
         }
@@ -527,7 +531,7 @@
             <label for="calendarMonth">計算月份</label>
             <select id="calendarMonth" onchange="handlePeriodChange()"></select>
         </div>
-        <div class="input-group range-period-field is-hidden">
+        <div class="input-group range-period-field range-start-field is-hidden">
             <label for="rangeStart">週期第一天</label>
             <select id="rangeStart" onchange="handleFourWeekStartChange()"></select>
         </div>
