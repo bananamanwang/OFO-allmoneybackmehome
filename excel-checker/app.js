@@ -1,29 +1,9 @@
 "use strict";
 
-const HOLIDAYS = {
-  2026: [
-    ["2026-01-01","開國紀念日"],["2026-02-15","小年夜"],["2026-02-16","農曆除夕"],
-    ["2026-02-17","春節"],["2026-02-18","春節"],["2026-02-19","春節"],["2026-02-20","補假"],
-    ["2026-02-27","補假"],["2026-02-28","和平紀念日"],["2026-04-03","補假"],
-    ["2026-04-04","兒童節"],["2026-04-05","清明節"],["2026-04-06","補假"],
-    ["2026-05-01","勞動節"],["2026-06-19","端午節"],["2026-09-25","中秋節"],
-    ["2026-09-28","孔子誕辰紀念日／教師節"],["2026-10-09","補假"],["2026-10-10","國慶日"],
-    ["2026-10-25","臺灣光復暨金門古寧頭大捷紀念日"],["2026-10-26","補假"],["2026-12-25","行憲紀念日"]
-  ],
-  2027: [
-    ["2027-01-01","開國紀念日"],["2027-02-04","小年夜"],["2027-02-05","農曆除夕"],
-    ["2027-02-06","春節"],["2027-02-07","春節"],["2027-02-08","春節"],["2027-02-09","補假"],
-    ["2027-02-10","補假"],["2027-02-28","和平紀念日"],["2027-03-01","補假"],
-    ["2027-04-04","兒童節"],["2027-04-05","清明節"],["2027-04-06","補假"],
-    ["2027-04-30","補假"],["2027-05-01","勞動節"],["2027-06-09","端午節"],
-    ["2027-09-15","中秋節"],["2027-09-28","孔子誕辰紀念日／教師節"],["2027-10-10","國慶日"],
-    ["2027-10-11","補假"],["2027-10-25","臺灣光復暨金門古寧頭大捷紀念日"],
-    ["2027-12-24","補假"],["2027-12-25","行憲紀念日"],["2027-12-31","補假"]
-  ]
-};
+const HOLIDAYS = window.OFO_HOLIDAYS;
 
 const $ = id => document.getElementById(id);
-const state = { files: [], requiredManual: false, loadId: 0 };
+const state = { files: [], loadId: 0 };
 const holidayMap = new Map(Object.values(HOLIDAYS).flat());
 const pad = n => String(n).padStart(2,"0");
 const iso = d => `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`;
@@ -46,7 +26,7 @@ function init() {
   $("mode").addEventListener("change", () => { toggleMode(); periodChanged(); });
   ["year","month"].forEach(id => $(id).addEventListener("change", periodChanged));
   $("startDate").addEventListener("change", () => { syncFourWeekEnd(); periodChanged(); });
-  bindNumberField("requiredHours",true);
+  bindNumberField("requiredHours");
   ["supervisionHours","daycareHours","typhoon1Min","typhoon2Min","typhoon3Min"].forEach(id => bindNumberField(id));
   $("fileInput").addEventListener("change", e => loadFiles(e.target.files));
   $("resetButton").addEventListener("click", resetFiles);
@@ -123,16 +103,14 @@ function normalizeNumber(input) {
   input.value=String(numberValue(input.id));
 }
 
-function bindNumberField(id,marksRequiredManual=false) {
+function bindNumberField(id) {
   const input=$(id);
   input.addEventListener('input',() => {
     clampNumber(input);
-    if(marksRequiredManual) state.requiredManual=true;
     calculate();
   });
   input.addEventListener('change',() => {
     normalizeNumber(input);
-    if(marksRequiredManual) state.requiredManual=true;
     calculate();
   });
 }
@@ -181,7 +159,6 @@ function periodChanged() {
   $("startDate").toggleAttribute('aria-invalid',!!error);
   $("endDate").toggleAttribute('aria-invalid',!!error);
   if(error) {
-    state.requiredManual=false;
     $("requiredHours").value='';
     $("requiredHint").textContent='暫停計算，請先修正日期區間。';
     $("saturdayTags").innerHTML='';
@@ -191,7 +168,6 @@ function periodChanged() {
   }
   const days=daysBetween(p.start,p.end);
   const workdays=days.filter(d => d.getUTCDay()>=1 && d.getUTCDay()<=5 && !holidayMap.has(iso(d))).length;
-  state.requiredManual=false;
   $("requiredHours").value=(workdays*8).toFixed(2).replace(/\.00$/,'');
   $("requiredHint").textContent=`自動計算：${workdays} 個工作日 × 8 小時＝${workdays*8} 小時（仍可手動修改）`;
   $("leaveNote").textContent=$("mode").value==='range'
@@ -286,12 +262,22 @@ function parseCells(cells,fileName) {
   const reportStart=new Date(Date.UTC(year,month-1,ym[3]?+ym[3]:1));
   if(reportStart.getUTCMonth()!==month-1) throw new Error('班表起始日期無效');
   const reportEnd=ym[3]?new Date(+reportStart+27*86400000):new Date(Date.UTC(year,month,0));
-  const employee=metaText.match(/員工姓名\s*[:：]\s*(.*?)\s+員工編號\s*[:：]/)?.[1]?.trim() || '未辨識';
-  const employeeId=metaText.match(/員工編號\s*[:：]\s*([^\s]+)/)?.[1] || '—';
-  const headerWork=+(metaText.match(/總工時\s*[:：]\s*(\d+)\s*分鐘/)?.[1] || 0);
-  const headerTransport=+(metaText.match(/總交通\s*[:：]\s*(\d+)\s*分鐘/)?.[1] || 0);
-  const employeeLeave=+(metaText.match(/員工請假總工時\s*[:：]\s*(\d+)\s*分鐘/)?.[1] || 0);
-  const clientLeave=+(metaText.match(/個案請假總工時\s*[:：]\s*(\d+)\s*分鐘/)?.[1] || 0);
+  const employeeMatch=metaText.match(/員工姓名\s*[:：]\s*(.*?)\s+員工編號\s*[:：]/);
+  const employeeIdMatch=metaText.match(/員工編號\s*[:：]\s*([^\s]+)/);
+  const headerWorkMatch=metaText.match(/總工時\s*[:：]\s*([\d,]+)\s*分鐘/);
+  const headerTransportMatch=metaText.match(/總交通\s*[:：]\s*([\d,]+)\s*分鐘/);
+  const toMinutes = match => +(match?.[1]?.replaceAll(',','') || 0);
+  const employee=employeeMatch?.[1]?.trim() || '未辨識';
+  const employeeId=employeeIdMatch?.[1] || '—';
+  const headerWork=toMinutes(headerWorkMatch);
+  const headerTransport=toMinutes(headerTransportMatch);
+  const employeeLeave=toMinutes(metaText.match(/員工請假總工時\s*[:：]\s*([\d,]+)\s*分鐘/));
+  const clientLeave=toMinutes(metaText.match(/個案請假總工時\s*[:：]\s*([\d,]+)\s*分鐘/));
+  const metadataWarnings=[];
+  if(!employeeMatch?.[1]?.trim()) metadataWarnings.push('找不到員工姓名');
+  if(!employeeIdMatch?.[1]) metadataWarnings.push('找不到員工編號');
+  if(!headerWorkMatch) metadataWarnings.push('找不到表頭總工時');
+  if(!headerTransportMatch) metadataWarnings.push('找不到表頭總交通');
   const records=[];
   for(const [ref,value] of cells) {
     const dm=value.match(/^\s*(\d{1,2})\s*\/\s*(\d{1,2})\s*\(\s*星期[一二三四五六日]\s*\)\s*$/);
@@ -300,11 +286,11 @@ function parseCells(cells,fileName) {
     const col=pos[1], row=+pos[2];
     const workText=cells.get(`${col}${row+1}`) || '';
     const transportText=cells.get(`${col}${row+2}`) || '';
-    const workMatch=workText.match(/工時\s*(\d+)\s*分鐘/);
-    const transportMatch=transportText.match(/交通\s*(\d+)\s*分鐘/);
+    const workMatch=workText.match(/工時\s*([\d,]+)\s*分鐘/);
+    const transportMatch=transportText.match(/交通\s*([\d,]+)\s*分鐘/);
     if(workText && !workMatch) throw new Error(`無法辨識 ${value} 的工時欄`);
     if(transportText && !transportMatch) throw new Error(`無法辨識 ${value} 的交通欄`);
-    const work=+(workMatch?.[1] || 0), transport=+(transportMatch?.[1] || 0);
+    const work=toMinutes(workMatch), transport=toMinutes(transportMatch);
     let recordYear=year;
     if(ym[3] && +dm[1]<month) recordYear++;
     const date=iso(new Date(Date.UTC(recordYear,+dm[1]-1,+dm[2])));
@@ -315,7 +301,7 @@ function parseCells(cells,fileName) {
   if(!records.length) throw new Error('找不到每日工時資料');
   records.sort((a,b)=>a.date.localeCompare(b.date));
   const sumWork=records.reduce((n,r)=>n+r.work,0), sumTransport=records.reduce((n,r)=>n+r.transport,0);
-  return {name:fileName,year,month,reportStart:iso(reportStart),reportEnd:iso(reportEnd),employee,employeeId,headerWork,headerTransport,employeeLeave,clientLeave,records,sumWork,sumTransport,
+  return {name:fileName,year,month,reportStart:iso(reportStart),reportEnd:iso(reportEnd),employee,employeeId,headerWork,headerTransport,employeeLeave,clientLeave,metadataWarnings,records,sumWork,sumTransport,
     reconciled:headerWork===sumWork && headerTransport===sumTransport};
 }
 
@@ -323,7 +309,7 @@ function renderFiles() {
   const body=$("fileTableBody");
   body.innerHTML=state.files.map((f,index) => f.error
     ? `<tr><td>${esc(f.name)}</td><td colspan="5" class="check-bad">${esc(f.error)}</td><td class="check-bad">失敗</td><td><button class="file-remove" type="button" data-remove-file="${index}">移除</button></td></tr>`
-    : `<tr><td title="${esc(f.name)}">${esc(shortName(f.name))}</td><td>${esc(f.employee)}<br><small>${esc(f.employeeId)}</small></td><td>${esc(f.reportStart)} ～ ${esc(f.reportEnd)}</td><td>${fmt(hours(f.headerWork))}</td><td>${fmt(hours(f.headerTransport))}</td><td>員工 ${f.employeeLeave} 分<br>個案 ${f.clientLeave} 分</td><td class="${f.reconciled?'check-ok':'check-bad'}">${f.reconciled?'吻合':reconcileLabel(f)}</td><td><button class="file-remove" type="button" data-remove-file="${index}">移除</button></td></tr>`
+    : `<tr><td title="${esc(f.name)}">${esc(shortName(f.name))}</td><td>${esc(f.employee)}<br><small>${esc(f.employeeId)}</small>${f.metadataWarnings?.length?`<br><small class="check-bad">${esc(f.metadataWarnings.join('、'))}</small>`:''}</td><td>${esc(f.reportStart)} ～ ${esc(f.reportEnd)}</td><td>${fmt(hours(f.headerWork))}</td><td>${fmt(hours(f.headerTransport))}</td><td>員工 ${f.employeeLeave} 分<br>個案 ${f.clientLeave} 分</td><td class="${f.reconciled?'check-ok':'check-bad'}">${f.reconciled?'吻合':reconcileLabel(f)}</td><td><button class="file-remove" type="button" data-remove-file="${index}">移除</button></td></tr>`
   ).join('');
   body.querySelectorAll('[data-remove-file]').forEach(button => button.addEventListener('click',() => removeFile(Number(button.dataset.removeFile))));
   $("fileTableWrap").classList.remove("hidden");
@@ -362,6 +348,9 @@ function calculate() {
   }
   valid.filter(f=>!f.reconciled).forEach(f=>warnings.push(
     `${f.name} 的 Excel 表頭與每日加總不一致：工時 ${signed(f.sumWork-f.headerWork)} 分鐘、交通 ${signed(f.sumTransport-f.headerTransport)} 分鐘。本次仍以每日資料計算。`
+  ));
+  valid.filter(f=>f.metadataWarnings?.length).forEach(f=>warnings.push(
+    `${f.name}：${f.metadataWarnings.join('、')}，請確認 Excel 表頭格式。`
   ));
   const merged=new Map();
   for(const f of valid) for(const r of f.records) {
@@ -486,7 +475,6 @@ function resetFiles(){clearFileState();calculate()}
 function clearAll(){
   if(!window.confirm('確定要清除已選檔案與所有手動填寫的時數嗎？')) return;
   ["supervisionHours","daycareHours","typhoon1Min","typhoon2Min","typhoon3Min"].forEach(id => {$(id).value='0'});
-  state.requiredManual=false;
   clearFileState();
   periodChanged();
 }
