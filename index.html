@@ -17,34 +17,56 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: var(--bg-color);
             margin: 0;
-            padding: 20px;
+            padding: 0 0 40px;
             color: #333;
+        }
+
+        .hero {
+            background: linear-gradient(120deg, #15314b, #17669a);
+            color: #fff;
+            padding: 22px 0 34px;
+            border-bottom: 5px solid #38a5ec;
+        }
+
+        .hero-wrap {
+            width: min(1120px, calc(100% - 48px));
+            margin: 0 auto;
+        }
+
+        .hero-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 20px;
+            color: #d9ebf7;
+            font-size: 15px;
+            font-weight: 750;
+        }
+
+        .hero h1 {
+            margin: 2px 0 5px;
+            font-size: 31px;
+        }
+
+        .hero p {
+            margin: 0;
+            color: #dcecf7;
+        }
+
+        .hero .eyebrow {
+            color: #8fd4ff;
+            font-weight: 800;
+            letter-spacing: .12em;
+            font-size: 13px;
         }
 
         .container {
             max-width: 1120px;
-            margin: 0 auto;
+            margin: 28px auto 0;
             background: #ffffff;
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-        }
-
-        h2 {
-            text-align: center;
-            color: var(--primary-color);
-            margin-bottom: 10px;
-        }
-
-        /* 新增標題下方的資訊列樣式 */
-        .header-info {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: #7f8c8d;
-            border-bottom: 2px solid var(--accent-color);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
         }
 
         .header-actions {
@@ -471,15 +493,19 @@
 </head>
 <body>
 
-<div class="container">
-    <h2>財團法人老五老基金會-工時計算</h2>
-    
-    <!-- 更新後的左右側資訊列 -->
-    <div class="header-info">
-        <span>2026.09.15第十八版</span>
-        <span>王瑄葆製作</span>
+<header class="hero">
+    <div class="hero-wrap">
+        <div class="hero-meta">
+            <span>製作日期：2026.10.06｜第十九版</span>
+            <span>製作人：王瑄葆</span>
+        </div>
+        <p class="eyebrow">手動填寫計算工具</p>
+        <h1>財團法人老五老基金會-工時計算</h1>
+        <p>選擇整月份或四週工時週期，填入各項工時後即可自動分類與計算。</p>
     </div>
-    
+</header>
+
+<div class="container">
     <div class="header-actions">
         <button class="clear-btn" onclick="clearFields()">🗑️ 一鍵清除資料</button>
     </div>
@@ -507,7 +533,7 @@
         </div>
         <div class="input-group range-period-field is-hidden">
             <label for="rangeEnd">週期結束日（自動）</label>
-            <input type="date" id="rangeEnd" readonly aria-readonly="true">
+            <input type="text" id="rangeEnd" readonly aria-readonly="true">
         </div>
         <div class="input-group">
             <label for="requiredHours">應上工時（工作日 × 8小時）</label>
@@ -628,61 +654,9 @@
     </div>
 </div>
 
+<script src="holidays.js?v=20261006-1"></script>
 <script>
-    // 資料來源：行政院人事行政總處「政府行政機關辦公日曆表」115、116年資料。
-    // 官方逐年公告，新增年度時需一併更新此清單，避免以公式猜測農曆節日與補假日。
-    const officialHolidays = {
-        2026: [
-            ['2026-01-01', '開國紀念日'],
-            ['2026-02-15', '小年夜'],
-            ['2026-02-16', '農曆除夕'],
-            ['2026-02-17', '春節'],
-            ['2026-02-18', '春節'],
-            ['2026-02-19', '春節'],
-            ['2026-02-20', '補假'],
-            ['2026-02-27', '補假'],
-            ['2026-02-28', '和平紀念日'],
-            ['2026-04-03', '補假'],
-            ['2026-04-04', '兒童節'],
-            ['2026-04-05', '清明節'],
-            ['2026-04-06', '補假'],
-            ['2026-05-01', '勞動節'],
-            ['2026-06-19', '端午節'],
-            ['2026-09-25', '中秋節'],
-            ['2026-09-28', '孔子誕辰紀念日／教師節'],
-            ['2026-10-09', '補假'],
-            ['2026-10-10', '國慶日'],
-            ['2026-10-25', '臺灣光復暨金門古寧頭大捷紀念日'],
-            ['2026-10-26', '補假'],
-            ['2026-12-25', '行憲紀念日']
-        ],
-        2027: [
-            ['2027-01-01', '開國紀念日'],
-            ['2027-02-04', '小年夜'],
-            ['2027-02-05', '農曆除夕'],
-            ['2027-02-06', '春節'],
-            ['2027-02-07', '春節'],
-            ['2027-02-08', '春節'],
-            ['2027-02-09', '補假'],
-            ['2027-02-10', '補假'],
-            ['2027-02-28', '和平紀念日'],
-            ['2027-03-01', '補假'],
-            ['2027-04-04', '兒童節'],
-            ['2027-04-05', '清明節'],
-            ['2027-04-06', '補假'],
-            ['2027-04-30', '補假'],
-            ['2027-05-01', '勞動節'],
-            ['2027-06-09', '端午節'],
-            ['2027-09-15', '中秋節'],
-            ['2027-09-28', '孔子誕辰紀念日／教師節'],
-            ['2027-10-10', '國慶日'],
-            ['2027-10-11', '補假'],
-            ['2027-10-25', '臺灣光復暨金門古寧頭大捷紀念日'],
-            ['2027-12-24', '補假'],
-            ['2027-12-25', '行憲紀念日'],
-            ['2027-12-31', '補假']
-        ]
-    };
+    const officialHolidays = window.OFO_HOLIDAYS;
 
     let activePeriod = null;
 
