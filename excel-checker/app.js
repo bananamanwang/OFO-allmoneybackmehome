@@ -388,7 +388,7 @@ function calculate() {
   }
   const service=hours(serviceMin), transport=hours(transportMin), saturday=hours(saturdayMin), holiday=hours(holidayMin), typhoon=hours(typhoonMin);
   const periodWork=service+supervision+daycare+typhoon;
-  const weekdayActual=service+transport+supervision+daycare+typhoon-saturday-holiday;
+  const weekdayActual=service+transport+supervision+daycare-saturday-holiday;
   const weekdayOvertime=weekdayActual-required;
   const overtime=round2(Math.max(weekdayOvertime,0)+saturday+holiday);
   $("overtimeCard").classList.toggle('overtime-warning',overtime>46);
