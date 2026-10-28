@@ -651,7 +651,7 @@
         </div>
 
         <div class="calculation-note">
-            <strong>計算說明：</strong>期間總工時不含交通＝全家寶＋日照＋團督＋颱風；平日實際工時與平日加班均包含颱風假時數；週六另依每日工時＋交通拆分為前2小時、第3～8小時及超過8小時；總加班仍會計入交通時間，計算方式為平日加班正數＋週六加班＋國定假日加班。平日加班為負數時不列入總加班。
+            <strong>計算說明：</strong>期間總工時不含交通＝全家寶＋日照＋團督＋颱風；週六另依每日工時＋交通拆分為前2小時、第3～8小時及超過8小時；總加班仍會計入交通時間，計算方式為平日加班正數＋週六加班＋國定假日加班。平日加班為負數時不列入總加班。
         </div>
 
         <div id="alertBox" class="alert-box"></div>
@@ -1033,9 +1033,9 @@
         const grandTotalHours = baseSystemHours + typhoonHoursOnly;
         const transportHours = transportMin / 60;
         const periodWorkHours = grandTotalHours - transportHours;
-        const weekdayOvertime = grandTotalHours - saturdayHours - holidayHoursOnly - requiredHours;
+        const weekdayOvertime = grandTotalHours - saturdayHours - holidayHoursOnly - typhoonHoursOnly - requiredHours;
         const totalOvertime = Number((Math.max(weekdayOvertime, 0) + saturdayHours + holidayHoursOnly).toFixed(2));
-        const finalWeekdayTotal = grandTotalHours - saturdayHours - holidayHoursOnly;
+        const finalWeekdayTotal = grandTotalHours - saturdayHours - holidayHoursOnly - typhoonHoursOnly;
 
         document.getElementById('grandTotal').innerText = periodWorkHours.toFixed(2) + " 小時";
         
