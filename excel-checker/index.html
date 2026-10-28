@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="style.css?v=20261006-11">
   <script src="assets/jszip.min.js?v=3.10.1" defer></script>
   <script src="../holidays.js?v=20261006-1" defer></script>
-  <script src="app.js?v=20261006-15" defer></script>
+  <script src="app.js?v=20261028-1" defer></script>
 </head>
 <body>
   <header class="hero">
@@ -54,7 +54,7 @@
       </div>
 
       <div class="typhoon-section">
-        <div><h3>颱風假補貼</h3><p>沿用舊版規則，請填分鐘；會加入期間總工時，但不列入總加班。</p></div>
+        <div><h3>颱風假補貼</h3><p>沿用舊版規則，請填分鐘；會加入期間總工時，並計入平日加班。</p></div>
         <div class="form-grid three typhoon-grid">
           <label>颱風假 1 <em>（填分鐘，上限 480）</em><input id="typhoon1Min" type="number" min="0" max="480" step="1" value="0"></label>
           <label>颱風假 2 <em>（填分鐘，上限 480）</em><input id="typhoon2Min" type="number" min="0" max="480" step="1" value="0"></label>
@@ -150,7 +150,7 @@
 
       <details>
         <summary>查看計算方式</summary>
-        <p>平日實際工時＝服務＋交通＋團督＋日照－週六－國定假日；平日加班＝平日實際工時－應上工時；週六依每日工時＋交通拆分為前2小時、第3～8小時及超過8小時；總加班＝平日加班正數＋週六加班＋國定假日加班。期間總工時不含交通，但會加入颱風假補貼時數；颱風假不列入總加班。</p>
+        <p>平日實際工時＝服務＋交通＋團督＋日照＋颱風假－週六－國定假日；平日加班＝平日實際工時－應上工時；週六依每日工時＋交通拆分為前2小時、第3～8小時及超過8小時；總加班＝平日加班正數＋週六加班＋國定假日加班。期間總工時不含交通，並加入颱風假補貼時數；颱風假同時計入平日加班。</p>
       </details>
     </section>
   </main>
