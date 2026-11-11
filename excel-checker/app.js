@@ -27,7 +27,7 @@ function init() {
   ["year","month"].forEach(id => $(id).addEventListener("change", periodChanged));
   $("startDate").addEventListener("change", () => { syncFourWeekEnd(); periodChanged(); });
   bindNumberField("requiredHours");
-  ["supervisionHours","daycareHours","typhoon1Min","typhoon2Min","typhoon3Min"].forEach(id => bindNumberField(id));
+  ["supervisionHours","daycareHours"].forEach(id => bindNumberField(id));
   $("fileInput").addEventListener("change", e => loadFiles(e.target.files));
   $("resetButton").addEventListener("click", resetFiles);
   $("clearAllButton").addEventListener("click", clearAll);
@@ -371,7 +371,6 @@ function calculate() {
   const supervision=numberValue("supervisionHours");
   const daycare=numberValue("daycareHours");
   const required=numberValue("requiredHours");
-  const typhoonMin=[1,2,3].reduce((sum,i)=>sum+numberValue(`typhoon${i}Min`),0);
   let saturdayMin=0, holidayMin=0;
   let saturdayTier1Min=0, saturdayTier2Min=0, saturdayOver8Min=0;
   const special=[];
@@ -386,8 +385,8 @@ function calculate() {
     }
     else if(holidayMap.has(date)) { holidayMin+=r.work+r.transport; special.push({date,type:holidayMap.get(date),isHoliday:true,...r}); }
   }
-  const service=hours(serviceMin), transport=hours(transportMin), saturday=hours(saturdayMin), holiday=hours(holidayMin), typhoon=hours(typhoonMin);
-  const periodWork=service+supervision+daycare+typhoon;
+  const service=hours(serviceMin), transport=hours(transportMin), saturday=hours(saturdayMin), holiday=hours(holidayMin);
+  const periodWork=service+supervision+daycare;
   const weekdayActual=service+transport+supervision+daycare-saturday-holiday;
   const weekdayOvertime=weekdayActual-required;
   const overtime=round2(Math.max(weekdayOvertime,0)+saturday+holiday);
@@ -398,7 +397,7 @@ function calculate() {
   setText('requiredResult',fmt(required)); setText('weekdayActual',fmt(weekdayActual)); setText('weekdayOvertime',fmt(weekdayOvertime));
   setText('saturdayOvertime',fmt(saturday)); setText('saturdayTier1',fmt(hours(saturdayTier1Min))); setText('saturdayTier2',fmt(hours(saturdayTier2Min))); setText('saturdayOver8',fmt(hours(saturdayOver8Min)));
   setText('holidayOvertime',fmt(holiday));
-  setText('supervisionResult',fmt(supervision)); setText('daycareResult',fmt(daycare)); setText('typhoonResult',fmt(typhoon));
+  setText('supervisionResult',fmt(supervision)); setText('daycareResult',fmt(daycare));
   $("shortageBadge").classList.toggle('hidden',weekdayOvertime>=0);
   $("specialDayBody").innerHTML=special.length ? special.map(r=>{
     const total=hours(r.work+r.transport), over=total>8;
@@ -464,7 +463,7 @@ function renderWeeklyCheck(period,days,records) {
   $("weeklyBody").innerHTML=rows.length?rows.join(''):'<tr><td colspan="6" class="empty">所選期間沒有可檢查的週次</td></tr>';
 }
 function clearResults(){
-  ['periodWork','transportTotal','overtimeTotal','requiredResult','weekdayActual','weekdayOvertime','saturdayOvertime','saturdayTier1','saturdayTier2','saturdayOver8','holidayOvertime','supervisionResult','daycareResult','typhoonResult'].forEach(id=>setText(id,'—'));
+  ['periodWork','transportTotal','overtimeTotal','requiredResult','weekdayActual','weekdayOvertime','saturdayOvertime','saturdayTier1','saturdayTier2','saturdayOver8','holidayOvertime','supervisionResult','daycareResult'].forEach(id=>setText(id,'—'));
   $("shortageBadge").classList.add('hidden'); $("warnings").classList.add('hidden'); $("resultsPanel").classList.add('hidden');
   $("overtimeCard").classList.remove('overtime-warning'); $("overtimeWarning").classList.add('hidden');
   $("specialDayBody").innerHTML='<tr><td colspan="9" class="empty">尚未產生資料</td></tr>';
@@ -474,7 +473,7 @@ function clearFileState(){state.loadId++;state.files=[];$("fileInput").value='';
 function resetFiles(){clearFileState();calculate()}
 function clearAll(){
   if(!window.confirm('確定要清除已選檔案與所有手動填寫的時數嗎？')) return;
-  ["supervisionHours","daycareHours","typhoon1Min","typhoon2Min","typhoon3Min"].forEach(id => {$(id).value='0'});
+  ["supervisionHours","daycareHours"].forEach(id => {$(id).value='0'});
   clearFileState();
   periodChanged();
 }
