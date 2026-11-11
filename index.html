@@ -403,19 +403,12 @@
             background-color: #fff5ef;
         }
 
-        .detail-item.typhoon-detail {
-            border-left: 5px solid #805bd4;
-            background-color: #f7f2ff;
-        }
-
         .detail-item.weekday-overtime-detail .detail-label,
         .detail-item.weekday-overtime-detail .detail-value { color: #8a5a00; }
         .detail-item.saturday-detail .detail-label,
         .detail-item.saturday-detail .detail-value { color: #175cd3; }
         .detail-item.holiday-detail .detail-label,
         .detail-item.holiday-detail .detail-value { color: #b54708; }
-        .detail-item.typhoon-detail .detail-label,
-        .detail-item.typhoon-detail .detail-value { color: #5b3fa3; }
         .detail-item.saturday-over8-detail .detail-label,
         .detail-item.saturday-over8-detail .detail-value { color: #d92d20; }
 
@@ -543,6 +536,7 @@
             <label for="requiredHours">應上工時（工作日 × 8小時）</label>
             <input type="number" id="requiredHours" min="0" max="20000" step="0.01" value="0" oninput="handleRequiredHoursInput()">
             <span id="workdaySummary" class="field-help"></span>
+            <span class="field-help unit-warning">如有颱風天，請手動扣除 1 個應上工作日（8 小時）</span>
         </div>
         <div class="input-group">
             <label for="groupSupHours">團督時數 (小時)</label>
@@ -582,20 +576,13 @@
     <!-- 國定假日超時警告專區 -->
     <div id="holidayAlerts" class="alert-container"></div>
 
-    <div class="section-title">4. 颱風假補貼 (單位：分鐘)</div>
-    <div class="input-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
-        <div class="input-group"><label for="typ1">颱風假 1</label><input type="number" id="typ1" placeholder="工時(分)" min="0" max="480" step="1" oninput="validateNumber(this); calculateHours()"></div>
-        <div class="input-group"><label for="typ2">颱風假 2</label><input type="number" id="typ2" placeholder="工時(分)" min="0" max="480" step="1" oninput="validateNumber(this); calculateHours()"></div>
-        <div class="input-group"><label for="typ3">颱風假 3</label><input type="number" id="typ3" placeholder="工時(分)" min="0" max="480" step="1" oninput="validateNumber(this); calculateHours()"></div>
-    </div>
-
     <!-- 計算結果面板 -->
     <div class="results-card">
         <div class="summary-grid">
             <div class="summary-card total">
                 <span class="summary-label">期間總工時（不含交通）</span>
                 <span class="summary-value" id="grandTotal">0.00 小時</span>
-                <span class="summary-help">全家寶＋日照＋團督＋颱風</span>
+                <span class="summary-help">全家寶＋日照＋團督</span>
             </div>
             <div class="summary-card transport">
                 <span class="summary-label">總交通時間</span>
@@ -643,15 +630,11 @@
                     <span class="detail-label">國定假日加班</span>
                     <div class="detail-value-wrap"><span class="detail-value" id="holidayTotal">0.00 小時</span></div>
                 </div>
-                <div class="detail-item typhoon-detail">
-                    <span class="detail-label">颱風假時數</span>
-                    <div class="detail-value-wrap"><span class="detail-value" id="typhoonTotal">0.00 小時</span></div>
-                </div>
             </div>
         </div>
 
         <div class="calculation-note">
-            <strong>計算說明：</strong>期間總工時不含交通＝全家寶＋日照＋團督＋颱風；週六另依每日工時＋交通拆分為前2小時、第3～8小時及超過8小時；總加班仍會計入交通時間，計算方式為平日加班正數＋週六加班＋國定假日加班。平日加班為負數時不列入總加班。
+            <strong>計算說明：</strong>期間總工時不含交通＝全家寶＋日照＋團督；週六另依每日工時＋交通拆分為前2小時、第3～8小時及超過8小時；總加班仍會計入交通時間，計算方式為平日加班正數＋週六加班＋國定假日加班。平日加班為負數時不列入總加班。如有颱風天，請手動將應上工時扣除 8 小時。
         </div>
 
         <div id="alertBox" class="alert-box"></div>
@@ -1024,18 +1007,12 @@
         });
         document.getElementById('holidayAlerts').innerHTML = holAlertsHTML;
         
-        let typhoonHoursOnly = 0;
-        for (let i = 1; i <= 3; i++) {
-            typhoonHoursOnly += getVal('typ' + i) / 60;
-        }
-
-        const baseSystemHours = (weekdayMin + transportMin) / 60 + daycareHours + groupSupHours;
-        const grandTotalHours = baseSystemHours + typhoonHoursOnly;
+        const grandTotalHours = (weekdayMin + transportMin) / 60 + daycareHours + groupSupHours;
         const transportHours = transportMin / 60;
         const periodWorkHours = grandTotalHours - transportHours;
-        const weekdayOvertime = grandTotalHours - saturdayHours - holidayHoursOnly - typhoonHoursOnly - requiredHours;
+        const weekdayOvertime = grandTotalHours - saturdayHours - holidayHoursOnly - requiredHours;
         const totalOvertime = Number((Math.max(weekdayOvertime, 0) + saturdayHours + holidayHoursOnly).toFixed(2));
-        const finalWeekdayTotal = grandTotalHours - saturdayHours - holidayHoursOnly - typhoonHoursOnly;
+        const finalWeekdayTotal = grandTotalHours - saturdayHours - holidayHoursOnly;
 
         document.getElementById('grandTotal').innerText = periodWorkHours.toFixed(2) + " 小時";
         
@@ -1057,7 +1034,6 @@
         document.getElementById('saturdayTier2Total').innerText = saturdayTier2Hours.toFixed(2) + " 小時";
         document.getElementById('saturdayOver8Total').innerText = saturdayOver8Hours.toFixed(2) + " 小時";
         document.getElementById('holidayTotal').innerText = holidayHoursOnly.toFixed(2) + " 小時";
-        document.getElementById('typhoonTotal').innerText = typhoonHoursOnly.toFixed(2) + " 小時";
 
         const alertBox = document.getElementById('alertBox');
         if (totalOvertime > 46) {
